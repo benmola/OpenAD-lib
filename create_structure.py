@@ -3,7 +3,7 @@ import os
 # Define the directory structure
 # Extended directory structure with Feedstock Characteristics Library and drop-in uncertainty (MTGP/physics-informed GP)
 structure = {
-    "bioprocess-digitalisation-lib": {
+    "OpenAD-lib": {
         "data": {
             "raw": {},
             "processed": {},
@@ -66,7 +66,6 @@ structure = {
                 "control": {
                     "__init__.py": "",
                     "mpc_controller.py": "",
-                    "chance_constraints.py": ""            # utilities to convert GP uncertainty -> probabilistic constraints
                 },
                 "utils": {
                     "__init__.py": "",
@@ -133,7 +132,7 @@ def create_structure(path, structure):
                 f.write(value)
 
 # Create the root directory -  No need to create it again, the repo is the root
-root_dir = "SBIH-bioprocess-digitalisation-lib"
+root_dir = "OpenAD-lib"
 os.makedirs(root_dir, exist_ok=True)
 
 # Populate the directory structure
