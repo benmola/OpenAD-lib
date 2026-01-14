@@ -116,8 +116,9 @@ def run_vfa_tracking_example():
         
     # 5. Plot Results
     print("\nPlotting results...")
-    
-    fig, axes = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
+    # Plotting
+    plt.style.use('bmh')
+    fig, axes = plt.subplots(4, 1, figsize=(12, 12), sharex=True)
     
     # Plot 1: Tracking Performance (S2)
     ax = axes[0]
@@ -149,9 +150,17 @@ def run_vfa_tracking_example():
     ax.set_ylim(-0.05, d_max + 0.1)
     
     plt.tight_layout()
-    plt.savefig('vfa_tracking_results.png')
-    # plt.show()
-    print("\nDone! Results saved to vfa_tracking_results.png")
+    
+    # Save to images folder
+    base_dir = os.path.dirname(__file__)
+    project_root = os.path.join(base_dir, '..')
+    images_dir = os.path.join(project_root, 'images')
+    if not os.path.exists(images_dir):
+        os.makedirs(images_dir)
+    
+    save_path = os.path.join(images_dir, 'vfa_tracking_results.png')
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"\nDone! Results saved to {save_path}")
 
 if __name__ == "__main__":
     run_vfa_tracking_example()

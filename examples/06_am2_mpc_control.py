@@ -126,40 +126,48 @@ def run_control_example():
         
     # 5. Plot Results
     print("\nPlotting results...")
+    # Plotting
+    plt.style.use('bmh')
+    fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
     
-    fig, axes = plt.subplots(3, 1, figsize=(10, 12), sharex=True)
-    
-    # Plot 1: States (S1, S2)
+    # Plot 1: VFA (S1)
     ax = axes[0]
-    ax.plot(history['time'], history['S1'], label='Substrate (S1)')
-    ax.plot(history['time'], history['S2'], label='VFA (S2)')
-    ax.set_ylabel('Concentration [g/L]')
-    ax.set_title('Substrate and Intermediate Concentrations')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax.plot(history['time'], history['S1'], 'b-', linewidth=2, label='VFA (S1)')
+    ax.set_ylabel('Concentration [g COD/L]', fontsize=14, fontweight='bold')
+    ax.set_title('VFA Concentration', fontsize=16, pad=20)
+    ax.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
+    ax.grid(True, linestyle='--', alpha=0.7)
     
     # Plot 2: Biogas (Q)
     ax = axes[1]
     ax.plot(history['time'], history['Q'], 'g-', linewidth=2, label='Biogas Production')
-    ax.set_ylabel('Production Rate [L/d]')
-    ax.set_title('Biogas Production (Objective)')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax.set_ylabel('Production Rate [L/d]', fontsize=14, fontweight='bold')
+    ax.set_title('Biogas Production (Objective)', fontsize=16, pad=20)
+    ax.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
+    ax.grid(True, linestyle='--', alpha=0.7)
     
     # Plot 3: Control Input (D)
     ax = axes[2]
     ax.step(history['time'], history['D'], 'r-', where='post', label='Dilution Rate (D)')
-    ax.set_ylabel('Rate [1/d]')
-    ax.set_xlabel('Time [days]')
-    ax.set_title('Control Input')
+    ax.set_ylabel('Rate [1/d]', fontsize=14, fontweight='bold')
+    ax.set_xlabel('Time [days]', fontsize=14, fontweight='bold')
+    ax.set_title('Control Input', fontsize=16, pad=20)
     ax.set_ylim(-0.05, 0.55) # Show constraints
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
+    ax.grid(True, linestyle='--', alpha=0.7)
     
     plt.tight_layout()
-    plt.savefig('mpc_results.png')
-    plt.show()
-    print("\nDone! Results saved to mpc_results.png")
+    
+    # Save to images folder
+    base_dir = os.path.dirname(__file__)
+    project_root = os.path.join(base_dir, '..')
+    images_dir = os.path.join(project_root, 'images')
+    if not os.path.exists(images_dir):
+        os.makedirs(images_dir)
+    
+    save_path = os.path.join(images_dir, 'mpc_results.png')
+    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    print(f"\nDone! Results saved to {save_path}")
 
 if __name__ == "__main__":
     run_control_example()

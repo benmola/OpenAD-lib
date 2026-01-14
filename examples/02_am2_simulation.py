@@ -18,7 +18,7 @@ print("AM2 Model Simulation")
 print("=" * 60)
 
 # Check if data file exists
-am2_data_path = os.path.join(DATA_DIR, 'sample_AM2_data.csv')
+am2_data_path = os.path.join(DATA_DIR, 'sample_AM2_Lab_data.csv')
 
 if os.path.exists(am2_data_path):
     print("\nInitializing AM2 model with default calibrated parameters...")
@@ -47,4 +47,4 @@ if os.path.exists(am2_data_path):
     
 else:
     print(f"Error: Data file not found in {DATA_DIR}")
-    print("Please ensure sample_AM2_data.csv exists.")
+    print("Please ensure sample_AM2_Lab_data.csv exists.")

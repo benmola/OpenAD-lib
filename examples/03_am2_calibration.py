@@ -22,7 +22,7 @@ except ImportError as e:
 
 # Get the data directory path
 DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'src', 'openad_lib', 'data')
-data_path = os.path.join(DATA_DIR, 'sample_AM2_data.csv')
+data_path = os.path.join(DATA_DIR, 'sample_AM2_Lab_data.csv')
 
 print("=" * 60)
 print("AM2 Model Calibration")
@@ -80,7 +80,8 @@ for var in initial_metrics:
 
 # Plot comparison
 print("\nGenerating comparison plots...")
-fig, axes = plt.subplots(3, 1, figsize=(10, 12))
+plt.style.use('bmh')
+fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
 variables = ['S1', 'S2', 'Q']
 labels = ['COD (S1)', 'VFA (S2)', 'Biogas (Q)']
 time = final_results['time']
@@ -91,21 +92,34 @@ for i, var in enumerate(variables):
     # Measured Data
     if f'{var}_measured' in final_results.columns:
         valid = ~final_results[f'{var}_measured'].isna()
-        ax.plot(time[valid], final_results[f'{var}_measured'][valid], 'bo', label='Measured',alpha=0.6)
+        ax.plot(time[valid], final_results[f'{var}_measured'][valid], 
+                'o', color='#2E86C1', markersize=6, label='Measured', alpha=0.7)
         
     # Initial Model
-    ax.plot(time, initial_results[var], 'r--', label='Initial Model', alpha=0.5)
+    ax.plot(time, initial_results[var], '--', color='gray', linewidth=2, 
+            label='Initial Model', alpha=0.7)
     
     # Calibrated Model
-    ax.plot(time, final_results[var], 'g-', linewidth=2, label='Calibrated Model')
+    ax.plot(time, final_results[var], '-', color='#27AE60', linewidth=2, 
+            label='Calibrated Model')
     
-    ax.set_ylabel(labels[i])
-    ax.set_title(f'{labels[i]} Calibration Comparison')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
+    ax.set_ylabel(labels[i], fontsize=14, fontweight='bold')
+    ax.set_title(f'{labels[i]} Calibration Comparison', fontsize=16, pad=20)
+    ax.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
+    ax.grid(True, linestyle='--', alpha=0.7)
 
-axes[-1].set_xlabel('Time (days)')
+axes[-1].set_xlabel('Time (days)', fontsize=14, fontweight='bold')
 plt.tight_layout()
-plt.show()
+
+# Save to images folder
+base_dir = os.path.dirname(__file__)
+project_root = os.path.join(base_dir, '..')
+images_dir = os.path.join(project_root, 'images')
+if not os.path.exists(images_dir):
+    os.makedirs(images_dir)
+
+save_path = os.path.join(images_dir, 'am2_calibration.png')
+plt.savefig(save_path, dpi=300, bbox_inches='tight')
+print(f"Plot saved to {save_path}")
 
 print("\nExample complete!")

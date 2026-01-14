@@ -513,7 +513,8 @@ class AM2Model:
         self,
         variables: Optional[List[str]] = None,
         figsize: Tuple[int, int] = (14, 12),
-        show_measured: bool = True
+        show_measured: bool = True,
+        save_path: Optional[str] = None
     ) -> None:
         """
         Plot simulation results.
@@ -522,8 +523,10 @@ class AM2Model:
             variables: List of variables to plot. If None, plots S1, S2, Q.
             figsize: Figure size (width, height)
             show_measured: Whether to show measured data points
+            save_path: Path to save the plot. If None, saves to images/am2_simulation.png
         """
         import matplotlib.pyplot as plt
+        import os
         
         if self.results is None:
             raise ValueError("No results available. Run simulation first.")
@@ -531,8 +534,11 @@ class AM2Model:
         if variables is None:
             variables = ['S1', 'S2', 'Q']
         
+        # Apply consistent styling
+        plt.style.use('bmh')
+        
         n_vars = len(variables)
-        fig, axes = plt.subplots(n_vars, 1, figsize=figsize)
+        fig, axes = plt.subplots(n_vars, 1, figsize=figsize, sharex=True)
         
         if n_vars == 1:
             axes = [axes]
@@ -561,7 +567,7 @@ class AM2Model:
             # Plot simulated data
             ax.plot(
                 time, self.results[var], 
-                color='red', linestyle='--', linewidth=2,
+                color='#E67E22', linestyle='-', linewidth=2,
                 label=f'Predicted {var}'
             )
             
@@ -572,19 +578,38 @@ class AM2Model:
                 if not meas_data.isna().all():
                     ax.plot(
                         time, meas_data, 
-                        'bo', markersize=8,
-                        label=f'Measured {var}'
+                        'o', color='#2E86C1', markersize=6,
+                        label=f'Measured {var}', alpha=0.7
                     )
             
-            ax.set_xlabel('Time (days)', fontsize=12)
-            ax.set_ylabel(output_labels.get(var, var), fontsize=12)
-            ax.set_title(f'{output_labels.get(var, var)} over Time', fontsize=14)
-            ax.legend(loc='best', fontsize=10)
-            ax.grid(True, alpha=0.3)
-            ax.tick_params(axis='both', labelsize=10)
+            # Apply consistent formatting
+            ax.set_xlabel('Time (days)' if i == n_vars-1 else '', fontsize=14, fontweight='bold')
+            ax.set_ylabel(output_labels.get(var, var), fontsize=14, fontweight='bold')
+            ax.set_title(f'{output_labels.get(var, var)} over Time', fontsize=16, pad=20)
+            ax.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
+            ax.grid(True, linestyle='--', alpha=0.7)
+            ax.tick_params(axis='both', labelsize=12)
         
         plt.tight_layout()
-        plt.show()
+        
+        # Save plot
+        if save_path is None:
+            # Default: save to images folder in project root
+            # Try to find project root (3 levels up from this file)
+            try:
+                current_file = os.path.abspath(__file__)
+                # Go up 5 levels: am2_model.py -> mechanistic -> models -> openad_lib -> src -> project_root
+                project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file)))))
+                images_dir = os.path.join(project_root, 'images')
+                if not os.path.exists(images_dir):
+                    os.makedirs(images_dir)
+                save_path = os.path.join(images_dir, 'am2_simulation.png')
+            except:
+                save_path = 'am2_simulation.png'
+        
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {save_path}")
+        # plt.show()  # Commented out for non-interactive use
     
     def save_results(self, output_path: str) -> None:
         """
