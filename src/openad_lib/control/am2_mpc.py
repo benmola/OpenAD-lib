@@ -153,7 +153,8 @@ class AM2MPC:
         sampling_time: float = 1.0, 
         horizon: int = 20,
         objective_type: str = 'maximize_biogas', # 'maximize_biogas' or 'tracking'
-        Q_setpoint: float = 0.0,
+        tracking_variable: str = 'Q', # Variable to track (e.g., 'Q', 'S2')
+        setpoint: float = 0.0, # Target value for tracking_variable (renamed from Q_setpoint)
         D_max: float = 1.0
     ) -> None:
         """
@@ -163,7 +164,8 @@ class AM2MPC:
             sampling_time: Time step size [days]
             horizon: Prediction horizon steps
             objective_type: 'maximize_biogas' or 'tracking'
-            Q_setpoint: Setpoint for biogas (only used if 'tracking')
+            tracking_variable: Name of variable to track ('Q', 'S1', 'S2', etc.)
+            setpoint: Setpoint value (only used if 'tracking')
             D_max: Maximum dilution rate constraint
         """
         if self.model is None:
@@ -181,19 +183,27 @@ class AM2MPC:
         self.mpc.set_param(**setup_mpc)
         
         # Objective function
-        _Q = self.model.aux['Q']
         
         # mterm: Terminal cost
         # lterm: Stage cost
         
         if objective_type == 'maximize_biogas':
             # Minimize negative biogas production
+            _Q = self.model.aux['Q']
             lterm = -_Q 
             mterm = -_Q
         elif objective_type == 'tracking':
             # Minimize quadratic error from setpoint
-            lterm = (_Q - Q_setpoint)**2
-            mterm = (_Q - Q_setpoint)**2
+            # Identify variable
+            if tracking_variable in self.model.aux.keys():
+                var = self.model.aux[tracking_variable]
+            elif tracking_variable in self.model.x.keys():
+                var = self.model.x[tracking_variable]
+            else:
+                raise ValueError(f"Tracking variable '{tracking_variable}' not found in model.")
+                
+            lterm = (var - setpoint)**2
+            mterm = (var - setpoint)**2
         else:
             raise ValueError(f"Unknown objective type: {objective_type}")
             
