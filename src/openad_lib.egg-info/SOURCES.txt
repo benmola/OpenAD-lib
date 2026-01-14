@@ -8,10 +8,11 @@ src/openad_lib.egg-info/dependency_links.txt
 src/openad_lib.egg-info/requires.txt
 src/openad_lib.egg-info/top_level.txt
 src/openad_lib/control/__init__.py
+src/openad_lib/data/sample_ADM1_influent_data.csv
+src/openad_lib/data/sample_AM2_data.csv
 src/openad_lib/data/sample_ad_process_data.csv
-src/openad_lib/data/sample_biogas_output.xlsx
+src/openad_lib/data/sample_biogas_output.csv
 src/openad_lib/data/sample_feedstock_timeseries.csv
-src/openad_lib/data/sample_influent_data.xlsx
 src/openad_lib/data/sample_initial_state.csv
 src/openad_lib/feedstock/__init__.py
 src/openad_lib/feedstock/descriptors.py
@@ -19,6 +20,7 @@ src/openad_lib/feedstock/feedstock_library.py
 src/openad_lib/models/__init__.py
 src/openad_lib/models/mechanistic/__init__.py
 src/openad_lib/models/mechanistic/adm1_model.py
+src/openad_lib/models/mechanistic/am2_model.py
 src/openad_lib/models/ml/__init__.py
 src/openad_lib/models/ml/lstm_model.py
 src/openad_lib/models/ml/mtgp.py

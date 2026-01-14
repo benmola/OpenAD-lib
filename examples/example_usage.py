@@ -107,6 +107,70 @@ else:
 
 
 # =============================================================================
+# Example 2b: AM2 Model Simulation (Simplified 4-State Model)
+# =============================================================================
+print("\n" + "=" * 60)
+print("Example 2b: AM2 Model Simulation (Simplified 4-State Model)")
+print("=" * 60)
+
+from openad_lib.models.mechanistic import AM2Model, AM2Parameters
+
+# Check if data file exists
+am2_data_path = os.path.join(DATA_DIR, 'sample_AM2_data.csv')
+
+if os.path.exists(am2_data_path):
+    print("\nInitializing AM2 model with default calibrated parameters...")
+    am2_model = AM2Model()
+    
+    # Display default parameters
+    print("\nDefault AM2 Parameters:")
+    print(f"  µ1max (m1): {am2_model.params.m1} d⁻¹")
+    print(f"  K1:         {am2_model.params.K1} g COD/L")
+    print(f"  µ2max (m2): {am2_model.params.m2} d⁻¹")
+    print(f"  Ki:         {am2_model.params.Ki} g COD/L")
+    print(f"  K2:         {am2_model.params.K2} g COD/L")
+    print(f"  k1:         {am2_model.params.k1} (COD degradation)")
+    print(f"  k2:         {am2_model.params.k2} (VFA production)")
+    print(f"  k3:         {am2_model.params.k3} (VFA consumption)")
+    print(f"  k6:         {am2_model.params.k6} (CH4 production)")
+    
+    # Load data
+    print("\nLoading AM2 data...")
+    am2_model.load_data(am2_data_path)
+    
+    print("\nAM2 model ready for simulation!")
+    print("State variables: S1 (COD), X1 (acidogens), S2 (VFA), X2 (methanogens), Q (biogas)")
+    print("Call am2_model.run() to execute simulation")
+    
+    # Uncomment to run full simulation:
+    # results = am2_model.run(verbose=True)
+    # am2_model.print_parameters()
+    # am2_model.print_metrics()
+    # am2_model.plot_results()
+else:
+    print("\nDemonstrating AM2 model with custom parameters...")
+    # Create model with custom parameters
+    custom_params = AM2Parameters(
+        m1=0.09,      # Maximum acidogenic growth rate
+        K1=10.50,     # Half-saturation for S1
+        m2=0.57,      # Maximum methanogenic growth rate
+        Ki=19.93,     # Inhibition constant
+        K2=54.46,     # Half-saturation for S2
+        k1=144.19,    # COD degradation yield
+        k2=31.44,     # VFA production yield
+        k3=535.99,    # VFA consumption yield
+        k6=100.20     # CH4 production yield
+    )
+    am2_model = AM2Model(params=custom_params)
+    print(f"  State variables: {am2_model.STATE_NAMES}")
+    print("  - S1: Organic substrate (COD)")
+    print("  - X1: Acidogenic biomass")
+    print("  - S2: Volatile fatty acids (VFA)")
+    print("  - X2: Methanogenic biomass")
+    print("  - Q: Biogas production rate")
+
+
+# =============================================================================
 # Example 3: LSTM Model for Biogas Prediction
 # =============================================================================
 print("\n" + "=" * 60)
@@ -219,10 +283,17 @@ print("""
 OpenAD-lib provides a unified framework for AD modelling:
 
 MECHANISTIC MODELS:
-  from openad_lib.models.mechanistic import ADM1Model
-  model = ADM1Model()
-  model.load_data(influent_path, initial_path)
-  results = model.run()
+  from openad_lib.models.mechanistic import ADM1Model, AM2Model
+  
+  # ADM1: Full 38-state model
+  adm1 = ADM1Model()
+  adm1.load_data(influent_path, initial_path)
+  results = adm1.run()
+  
+  # AM2: Simplified 4-state model
+  am2 = AM2Model()
+  am2.load_data("data.csv")
+  results = am2.run()
 
 ML SURROGATE MODELS:
   from openad_lib.models.ml import LSTMModel, MultitaskGP
@@ -237,3 +308,4 @@ FEEDSTOCK CHARACTERIZATION:
 
 For more examples, see the notebooks/ directory.
 """)
+

@@ -1,8 +1,5 @@
 """
-Control module for OpenAD-lib.
-
-Provides control strategies for AD processes:
-    - mpc_controller: Model Predictive Control implementation
+Control module for anaerobic digestion models.
 """
 
-__all__ = []
+from .am2_mpc import AM2MPC

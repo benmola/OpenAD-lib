@@ -7,4 +7,6 @@ Provides optimization and calibration tools:
     - hyperparameter_tuning: ML model hyperparameter optimization
 """
 
-__all__ = []
+from openad_lib.optimisation.am2_calibration import AM2Calibrator
+
+__all__ = ["AM2Calibrator"]

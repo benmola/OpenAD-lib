@@ -48,12 +48,23 @@ ml = [
     "torch>=1.9",
     "gpytorch>=1.5",
 ]
+optimization = [
+    "optuna>=3.0",
+    "plotly>=5.0",
+]
+control = [
+    "do-mpc>=4.0",
+    "casadi>=3.5",
+]
 full = [
     "torch>=1.9",
     "gpytorch>=1.5",
     "openpyxl>=3.0",
     "xlrd>=2.0",
     "optuna>=3.0",
+    "plotly>=5.0",
+    "do-mpc>=4.0",
+    "casadi>=3.5",
 ]
 dev = [
     "pytest>=7.0",
