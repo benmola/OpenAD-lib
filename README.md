@@ -258,7 +258,34 @@ Access via: `FeedstockLibrary().list_feedstocks()`
 | Limited training data | MultitaskGP |
 | Long-term forecasting | ADM1Model |
 
-## 📚 Citation
+## 📓 Interactive Notebooks (Google Colab)
+
+Learn by running these tutorials directly in your browser:
+
+| Notebook | Description | Open in Colab |
+|----------|-------------|---------------|
+| [01_ADM1_Tutorial](notebooks/01_ADM1_Tutorial.ipynb) | Full ADM1 mechanistic model | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/01_ADM1_Tutorial.ipynb) |
+| [02_AM2_Modelling](notebooks/02_AM2_Modelling.ipynb) | AM2 simulation & calibration | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/02_AM2_Modelling.ipynb) |
+| [03_LSTM_Prediction](notebooks/03_LSTM_Prediction.ipynb) | LSTM surrogate model | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/03_LSTM_Prediction.ipynb) |
+| [04_MTGP_Prediction](notebooks/04_MTGP_Prediction.ipynb) | Multi-Task GP with uncertainty | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/04_MTGP_Prediction.ipynb) |
+| [05_MPC_Control](notebooks/05_MPC_Control.ipynb) | Model Predictive Control | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/05_MPC_Control.ipynb) |
+
+## 📚 References
+
+### Core Publications
+
+| Component | Reference |
+|-----------|-----------|
+| **LSTM for AD** | [Murali et al. (2025) - LAPSE](https://psecommunity.org/LAPSE:2025.0213) |
+| **Multi-Task GP** | [Dekhici et al. (2025) - LAPSE](https://psecommunity.org/LAPSE:2025.0155) |
+| **AM2 Modelling & Calibration** | [Dekhici et al. (2024) - ACM DL](https://dl.acm.org/doi/10.1145/3680281) |
+| **Data-Driven Control** | [Dekhici et al. (2024) - ResearchGate](https://www.researchgate.net/publication/378298857_Data-Driven_Modeling_Order_Reduction_and_Control_of_Anaerobic_Digestion_Processes) |
+| **ACoD & Feedstock Library** | [Astals et al. (2015) - PubMed](https://pubmed.ncbi.nlm.nih.gov/27088248/) |
+| **ADM1 Implementation** | [PyADM1 - GitHub](https://github.com/CaptainFerMag/PyADM1), [Rosén & Jeppsson (2021)](https://www.biorxiv.org/content/biorxiv/early/2021/03/04/2021.03.03.433746.full.pdf) |
+| **Optuna (Calibration)** | [Akiba et al. (2019) - KDD Paper](https://arxiv.org/abs/1907.10902), [GitHub](https://github.com/optuna/optuna) |
+| **do-mpc Framework** | [do-mpc Documentation](https://www.do-mpc.com) |
+
+## 📝 Citation
 
 If you use OpenAD-lib in your research, please cite:
 
@@ -284,3 +311,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - **Author**: Benaissa Dekhici
 - **Email**: b.dekhici@surrey.ac.uk
 - **Institution**: University of Surrey
+
