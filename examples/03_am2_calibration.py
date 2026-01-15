@@ -49,6 +49,15 @@ calibrator = AM2Calibrator(model)
 # Define parameters to tune
 params_to_tune = ['m1', 'K1', 'm2', 'Ki', 'K2']
 
+# Define custom parameter bounds (optional - uses defaults if not specified)
+param_bounds = {
+    'm1': (0.01, 0.5),     # Growth rate of acidogens
+    'K1': (5.0, 50.0),     # Half-saturation constant
+    'm2': (0.1, 1.0),      # Growth rate of methanogens
+    'Ki': (5.0, 50.0),     # Inhibition constant
+    'K2': (10.0, 80.0)     # Half-saturation constant for VFA
+}
+
 # Define weights (focus on VFA and Biogas stability)
 weights = {'S1': 0.5, 'S2': 1.0, 'Q': 1.0}
 
@@ -59,6 +68,7 @@ print(f"Optimization weights: {weights}")
 print("\nStarting optimization (50 trials)...")
 best_params = calibrator.calibrate(
     params_to_tune=params_to_tune,
+    param_bounds=param_bounds,
     n_trials=50,
     weights=weights,
     show_progress_bar=True

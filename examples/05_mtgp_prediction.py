@@ -44,21 +44,18 @@ def main():
         data = pd.read_csv(data_path)
         print(f"\nLoaded {len(data)} samples from AD process data")
         
-        # Extract features and outputs (matching reference structure)
-        # Reference uses: time, D, SCODin, OLR, pH as inputs
-        # SCODout, VFAout, Biogas as outputs
+        # Define input and output columns explicitly
+        input_cols = ['time', 'D', 'SCODin', 'OLR', 'pH']
+        output_cols = ['SCODout', 'VFAout', 'Biogas']
         
-        # Try to identify columns
-        numeric_cols = data.select_dtypes(include=[np.number]).columns.tolist()
+        # Check if columns exist
+        missing_inputs = [c for c in input_cols if c not in data.columns]
+        missing_outputs = [c for c in output_cols if c not in data.columns]
         
-        # Assume last 3 are outputs, rest are inputs
-        if len(numeric_cols) >= 4:
-            input_cols = numeric_cols[:-3]
-            output_cols = numeric_cols[-3:]
-        else:
-            print("Warning: Not enough numeric columns, using first as input, rest as outputs")
-            input_cols = numeric_cols[:1]
-            output_cols = numeric_cols[1:]
+        if missing_inputs or missing_outputs:
+            print(f"Warning: Missing columns - Inputs: {missing_inputs}, Outputs: {missing_outputs}")
+            print(f"Available columns: {data.columns.tolist()}")
+            return
         
         X = data[input_cols].values
         Y = data[output_cols].values
@@ -87,7 +84,7 @@ def main():
         num_latents=min(3, num_tasks),
         n_inducing=60,
         learning_rate=0.1,
-        log_transform=True  # Match reference
+        log_transform=True  
     )
     
     # Train

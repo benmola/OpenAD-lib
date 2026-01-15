@@ -118,7 +118,7 @@ def run_vfa_tracking_example():
     print("\nPlotting results...")
     # Plotting
     plt.style.use('bmh')
-    fig, axes = plt.subplots(4, 1, figsize=(12, 12), sharex=True)
+    fig, axes = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
     
     # Plot 1: Tracking Performance (S2)
     ax = axes[0]

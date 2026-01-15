@@ -146,6 +146,7 @@ class AM2Calibrator:
     def calibrate(
         self,
         params_to_tune: Optional[List[str]] = None,
+        param_bounds: Optional[Dict[str, Tuple[float, float]]] = None,
         n_trials: int = 100,
         weights: Optional[Dict[str, float]] = None,
         timeout: Optional[int] = None,
@@ -157,6 +158,9 @@ class AM2Calibrator:
         Args:
             params_to_tune: List of parameter names to optimize. 
                             If None, optimizes kinetic parameters (m1, K1, m2, Ki, K2).
+            param_bounds: Dictionary of custom parameter bounds {name: (min, max)}.
+                          Example: {'m1': (0.05, 0.5), 'K1': (5.0, 30.0)}
+                          If None, uses default bounds.
             n_trials: Number of optimization trials
             weights: Weights for error components {'S1': 1.0, 'S2': 1.0, 'Q': 1.0}
             timeout: Optimization timeout in seconds
@@ -170,9 +174,23 @@ class AM2Calibrator:
             
         if params_to_tune is None:
             params_to_tune = ['m1', 'K1', 'm2', 'Ki', 'K2']
+        
+        # Apply custom bounds if provided
+        if param_bounds is not None:
+            for param, bounds in param_bounds.items():
+                if len(bounds) == 2 and bounds[0] < bounds[1]:
+                    self.param_ranges[param] = bounds
+                else:
+                    warnings.warn(f"Invalid bounds for {param}: {bounds}. Using default.")
             
         if weights is None:
             weights = {'S1': 1.0, 'S2': 1.0, 'Q': 1.0}
+        
+        # Print bounds being used
+        print("Parameter bounds:")
+        for param in params_to_tune:
+            low, high = self.param_ranges.get(param, (0.01, 100.0))
+            print(f"  {param}: [{low}, {high}]")
             
         # Create study
         self.study = optuna.create_study(direction="minimize")
