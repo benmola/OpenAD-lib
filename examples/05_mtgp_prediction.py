@@ -112,33 +112,37 @@ def main():
     for task_name, task_metrics in metrics.items():
         openad.utils.metrics.print_metrics(task_metrics, title=f"Task: {task_name}")
     
-    # Plot results
-    print("Generating plots with uncertainty intervals...")
-    fig, axes = plt.subplots(len(output_cols), 1, figsize=(10, 4*len(output_cols)))
-    if len(output_cols) == 1:
-        axes = [axes]
+    # Plot using unified system
+    print("Generating plots...")
     
-    for i, ax in enumerate(axes):
-        # Plot train and test data
-        ax.plot(X_train[:, 0], Y_train[:, i], 'bo', label=f"True {output_cols[i]} (Train)", markersize=5, alpha=0.5)
-        ax.plot(X_test[:, 0], Y_test[:, i], 'ro', label=f"True {output_cols[i]} (Test)", markersize=5, alpha=0.7)
-        
-        # Plot predictions with confidence
-        ax.plot(X_test[:, 0], mean[:, i], color='black', label=f"Predicted {output_cols[i]}", linewidth=2)
-        ax.fill_between(X_test[:, 0], lower[:, i], upper[:, i], color='black', alpha=0.2, label="95% Confidence")
-        
-        ax.set_title(output_cols[i])
-        ax.set_xlabel("Time" if i == len(output_cols)-1 else "")
-        ax.legend()
-        ax.grid(True, alpha=0.3)
+    # Create indices
+    n_train = len(X_train)
+    train_idx = np.arange(n_train)
+    test_idx = np.arange(n_train, n_train + len(X_test))
     
-    plt.tight_layout()
+    # Combine data
+    X_full = np.vstack([X_train, X_test])
+    Y_full = np.vstack([Y_train, Y_test])
+    mean_full, lower_full, upper_full = mtgp.predict(X_full, return_std=True)
     
     # Save plot
     images_dir = current_dir.parent / 'images'
     images_dir.mkdir(exist_ok=True)
     save_path = images_dir / 'mtgp_prediction_result.png'
-    plt.savefig(save_path)
+    
+    openad.plots.plot_multi_output(
+        y_true=Y_full,
+        y_pred=mean_full,
+        x=X_full[:, 0],
+        y_lower=lower_full,
+        y_upper=upper_full,
+        train_indices=train_idx,
+        test_indices=test_idx,
+        output_names=output_cols,
+        xlabel="Time",
+        save_path=save_path,
+        show=False
+    )
     print(f"\nPlot saved to {save_path}")
     
     print("\nExample complete!")

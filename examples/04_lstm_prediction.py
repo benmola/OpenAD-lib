@@ -28,7 +28,7 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 try:
-    import openad_lib as oad
+    import openad_lib as openad
     from openad_lib.utils.metrics import print_metrics
 except ImportError as e:
     print(f"Error importing openad_lib: {e}")
@@ -82,7 +82,7 @@ def main():
     print(f"  Input Dimension: {input_dim} (Features * Lags)")
 
     # Initialize LSTM model (using simplified API)
-    lstm = oad.LSTMModel(input_dim=input_dim, hidden_dim=24, output_dim=1)
+    lstm = openad.LSTMModel(input_dim=input_dim, hidden_dim=24, output_dim=1)
 
     # Prepare Data using Model Helper
     print("\nPreparing time series data (Creating lags)...")
@@ -136,33 +136,32 @@ def main():
     
     # So we compare raw y vs predict() output. Simple!
 
-    # Plotting
+    # Plotting using unified system  
     print("\nGenerating prediction plot...")
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
     
-    ax1.plot(y_train, label='Actual', color='blue', alpha=0.7)
-    ax1.plot(train_pred, label='Predicted', color='red', linestyle='--')
-    ax1.set_title("Training Set")
-    ax1.set_xlabel("Sample Index")
-    ax1.set_ylabel("Biogas Production")
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
-    
-    ax2.plot(y_test, label='Actual', color='blue', alpha=0.7)
-    ax2.plot(test_pred, label='Predicted', color='red', linestyle='--')
-    ax2.set_title("Testing Set")
-    ax2.set_xlabel("Sample Index")
-    ax2.set_ylabel("Biogas Production")
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
-    
-    plt.tight_layout()
+    # Combine train and test for visualization
+    y_full = np.concatenate([y_train, y_test])
+    pred_full = np.concatenate([train_pred, test_pred])
+    n_train = len(y_train)
+    train_idx = np.arange(n_train)
+    test_idx = np.arange(n_train, len(y_full))
     
     # Save plot
     images_dir = current_dir.parent / 'images'
     images_dir.mkdir(exist_ok=True)
     save_path = images_dir / 'lstm_prediction_result.png'
-    plt.savefig(save_path)
+    
+    openad.plots.plot_predictions(
+        y_true=y_full,
+        y_pred=pred_full,
+        train_indices=train_idx,
+        test_indices=test_idx,
+        title="LSTM Biogas Prediction",
+        xlabel="Sample Index",
+        ylabel="Biogas Production",
+        save_path=save_path,
+        show=False
+    )
     print(f"Plot saved to {save_path}")
 
 if __name__ == "__main__":

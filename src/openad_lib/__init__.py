@@ -89,6 +89,9 @@ def __getattr__(name):
     elif name == "preprocessing":
         from openad_lib import preprocessing
         return preprocessing
+    elif name == "plots":
+        from openad_lib.utils import plots
+        return plots
     
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
@@ -124,5 +127,6 @@ __all__ = [
     "data",
     "utils",
     "preprocessing",
+    "plots",
 ]
 

@@ -33,7 +33,10 @@ from openad_lib.utils.data_utils import (
     get_sample_data_path,
 )
 
-# Plot utilities (existing)
+# Plotting module (new unified plotting system)
+from openad_lib.utils import plots
+
+# Plot utilities (existing - backward compatibility)
 try:
     from openad_lib.utils.plot_utils import (
         plot_time_series,
@@ -65,7 +68,9 @@ __all__ = [
     'train_test_split_temporal',
     'validate_adm1_input',
     'get_sample_data_path',
-    # Plotting (if available)
+    # Unified plotting
+    'plots',
+    # Legacy plotting (if available)
     'plot_time_series',
     'plot_comparison',
 ]

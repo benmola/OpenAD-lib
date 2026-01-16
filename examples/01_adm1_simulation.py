@@ -117,45 +117,33 @@ def run_pipeline():
     else:
         print("Measured data file not found. Skipping comparison.")
 
-    # Plotting
-    plt.style.use('bmh')
-    plt.figure(figsize=(12, 8))
-    
-    # Time vector for simulation
-    t = df_qgas['time'] if 'time' in df_qgas.columns else df_qgas.index
-    
-    if has_measured:
-        plt.plot(time_aligned, y_true_aligned, 
-                 label='Measured Data', 
-                 linestyle='--', 
-                 color='#2E86C1', 
-                 linewidth=3, 
-                 alpha=0.8)
-                 
-        plt.plot(time_aligned, y_pred_aligned, 
-                 label='Model Prediction', 
-                 linestyle='-', 
-                 color='#E67E22', 
-                 linewidth=2)
-    else:
-        plt.plot(t, qgas_sim, 
-                 label='Model Prediction', 
-                 linestyle='-', 
-                 color='#E67E22', 
-                 linewidth=2)
-
-    plt.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
-    plt.xlabel('Time (days)', fontsize=14, fontweight='bold')
-    plt.ylabel('Biogas Production Rate (m³/day)', fontsize=14, fontweight='bold')
-    plt.title('ADM1 Simulation Results', fontsize=16, pad=20)
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.tight_layout()
-    
-    # Save plot
+    # Plotting using unified system
     images_dir = current_dir.parent / 'images'
     images_dir.mkdir(exist_ok=True)
     plot_file = images_dir / 'adm1_comparison_plot.png'
-    plt.savefig(plot_file)
+    
+    if has_measured:
+        openad.plots.plot_predictions(
+            y_true=y_true_aligned,
+            y_pred=y_pred_aligned,
+            x=time_aligned,
+            title="ADM1 Simulation Results",
+            xlabel="Time (days)",
+            ylabel="Biogas Production Rate (m³/day)",
+            save_path=plot_file,
+            show=False
+        )
+    else:
+        openad.plots.plot_predictions(
+            y_true=qgas_sim,  # No measured data, just show predictions
+            y_pred=qgas_sim,
+            x=t,
+            title="ADM1 Simulation Results",
+            xlabel="Time (days)",
+            ylabel="Biogas Production Rate (m³/day)",
+            save_path=plot_file,
+            show=False
+        )
     print(f"Plot saved to {plot_file}")
 
 if __name__ == "__main__":
