@@ -2,13 +2,21 @@
 import numpy as np
 import pandas as pd
 from scipy.integrate import solve_ivp
+from typing import Dict, Optional, Tuple
+from pathlib import Path
+
+from openad_lib.models.base import MechanisticModel
 from openad_lib.models.mechanistic.adm1_components import ode, inputs, initial
 
-class ADM1Model:
+class ADM1Model(MechanisticModel):
     """
     ADM1 Model implementation wrapping the detailed ODE definitions.
+    
+    Inherits from MechanisticModel to provide consistent interface.
     """
     def __init__(self):
+        super().__init__(params=None)
+        
         # Constant definition from the Rosen et al (2006) BSM2 report
         self.R = 0.083145                                                                # bar.M^-1.K^-1, Gas constant
         self.T_base = 298.15                                                             # K, Base temperature
@@ -22,6 +30,11 @@ class ADM1Model:
         
         self.V_liq = 10195 # m^3
         self.V_gas = 600   # m^3
+        
+        # Store for base class compatibility
+        self.influent_data: Optional[pd.DataFrame] = None
+        self.results: Optional[Dict] = None
+        self.metrics: Optional[Dict[str, float]] = None
 
     def set_parameters(self, **kwargs):
         """
@@ -172,3 +185,87 @@ class ADM1Model:
             'q_gas': df_qgas,
             'q_ch4': df_qch4
         }
+    
+    # ========== Base Class Interface Methods ==========
+    
+    def load_data(self, filepath: Path) -> pd.DataFrame:
+        """
+        Load influent data from file (implements BaseModel.load_data).
+        
+        For ADM1, this should be ACoD-preprocessed influent data.
+        
+        Parameters
+        ----------
+        filepath : str or Path
+            Path to CSV file with influent data
+            
+        Returns
+        -------
+        data : pd.DataFrame
+            Loaded influent dataframe
+        """
+        self.influent_data = pd.read_csv(filepath)
+        self.data = self.influent_data  # For base class compatibility
+        return self.influent_data
+    
+    def update_params(self, params: Dict[str, float]):
+        """
+        Update model parameters (implements MechanisticModel.update_params).
+        
+        For ADM1, updates parameters in self.Param list and individual attributes.
+        
+        Parameters
+        ----------
+        params : dict
+            Dictionary of parameter names and values
+            Supported: 'k_hyd', 'k_p', 'V_liq', 'V_gas'
+        """
+        # Update individual attributes
+        if 'k_hyd' in params:
+            self.k_hyd = params['k_hyd']
+            self.Param[6] = params['k_hyd']
+        
+        if 'k_p' in params:
+            self.k_p = params['k_p']
+            self.Param[3] = params['k_p']
+        
+        if 'V_liq' in params:
+            self.V_liq = params['V_liq']
+        
+        if 'V_gas' in params:
+            self.V_gas = params['V_gas']
+        
+        # Store calibrated params (for ADM1Calibrator)
+        if not hasattr(self, '_calibrated_params'):
+            self._calibrated_params = {}
+        self._calibrated_params.update(params)
+    
+    def evaluate(
+        self,
+        y_true: Optional[np.ndarray] = None,
+        y_pred: Optional[np.ndarray] = None
+    ) -> Dict[str, float]:
+        """
+        Compute evaluation metrics (implements BaseModel.evaluate).
+        
+        Parameters
+        ----------
+        y_true : np.ndarray, optional
+            Measured values (e.g., q_ch4)
+        y_pred : np.ndarray, optional
+            Simulated values
+            
+        Returns
+        -------
+        metrics : dict
+            Dictionary with RMSE, MAE, R2, etc.
+        """
+        if y_true is not None and y_pred is not None:
+            from openad_lib.utils.metrics import compute_metrics
+            self.metrics = compute_metrics(y_true, y_pred)
+            return self.metrics
+        else:
+            raise NotImplementedError(
+                "ADM1Model.evaluate() requires y_true and y_pred arguments. "
+                "Call with measured vs simulated biogas/methane data."
+            )

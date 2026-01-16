@@ -2,16 +2,16 @@
 LSTM Prediction Example
 =======================
 
-This script demonstrates LSTM-based biogas prediction using openad_lib,
-with data preprocessing matching the reference implementation.
+This script demonstrates LSTM-based biogas prediction using the unified MLModel interface.
 
-Features:
-- Uses series_to_supervised for time-lagged features
-- 80/20 train/test split
-- Uses openad_lib.models.ml.LSTMModel
+Workflow:
+1. Load Data: Standard CSV format.
+2. Initialize: Use LSTMModel (MLModel).
+3. Preprocess: Use built-in model.prepare_time_series_data() for lags.
+4. Train: Use unified train() method (handles scaling automatically).
+5. Evaluate: Use unified evaluate() method.
 
-Usage:
-    python examples/04_lstm_prediction.py
+New in v0.2.0: Uses simplified API with top-level imports.
 """
 
 import os
@@ -19,133 +19,137 @@ import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from pathlib import Path
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+current_dir = Path(__file__).parent.resolve()
+src_path = current_dir.parent / 'src'
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 try:
-    from openad_lib.models.ml import LSTMModel
+    import openad_lib as oad
+    from openad_lib.utils.metrics import print_metrics
 except ImportError as e:
     print(f"Error importing openad_lib: {e}")
     sys.exit(1)
 
-def series_to_supervised(data, n_in=1, n_out=1, dropnan=True):
-    """Convert series to supervised learning format."""
-    n_vars = 1 if type(data) is list else data.shape[1]
-    df = pd.DataFrame(data)
-    cols, names = [], []
-    for i in range(n_in, 0, -1):
-        cols.append(df.shift(i))
-        names += [('var%d(t-%d)' % (j+1, i)) for j in range(n_vars)]
-    for i in range(0, n_out):
-        cols.append(df.shift(-i))
-        if i == 0:
-            names += [('var%d(t)' % (j+1)) for j in range(n_vars)]
-        else:
-            names += [('var%d(t+%d)' % (j+1, i)) for j in range(n_vars)]
-    agg = pd.concat(cols, axis=1)
-    agg.columns = names
-    if dropnan:
-        agg.dropna(inplace=True)
-    return agg
-
 def main():
     print("="*60)
-    print("LSTM Model for Biogas Prediction")
+    print("LSTM Model for Biogas Prediction (Simplified)")
     print("="*60)
 
     # Paths
-    base_dir = os.path.dirname(__file__)
-    project_root = os.path.join(base_dir, '..')
-    data_path = os.path.join(project_root, 'src', 'openad_lib', 'data', 'sample_LSTM_timeseries.csv')
+    base_data_path = src_path / 'openad_lib' / 'data'
+    data_path = base_data_path / 'sample_LSTM_timeseries.csv'
 
     # Load data
-    if os.path.exists(data_path):
+    if data_path.exists():
         data = pd.read_csv(data_path).dropna()
         print(f"\nLoaded {len(data)} samples from biogas plant data")
         
-        # Define features and target (matching reference)
         features = ['Maize', 'Wholecrop', 'Chicken Litter', 'Lactose', 'Apple Pomace', 'Rice bran']
         label = 'Total_Biogas'
         
         print(f"  Features: {features}")
         print(f"  Target: {label}")
     else:
-        print("Error: Data file not found")
+        print(f"Error: Data file not found at {data_path}")
         return
 
-    # Prepare data for normalization (matching reference)
-    values = data[features].values.astype('float32')
-    scaler = StandardScaler()
-    scaled = scaler.fit_transform(values)
-
-    # Frame as supervised learning
-    reframed = series_to_supervised(scaled, 1, 1)
-
-    # Scale the output variable
-    y = data[[label]].values
-    scaler_y = StandardScaler()
-    y_scaled = scaler_y.fit_transform(y)
-
-    # 80/20 Split (matching user request)
-    split_idx = int(len(reframed) * 0.8)
-    train = reframed.values[:split_idx]
-    test = reframed.values[split_idx:]
+    # Initialize Model (Needed first to use data prep helper)
+    # We'll determine input_dim dynamically from the prepared data or features
+    # But for now, let's initialize it placeholder or just use class method?
+    # prepare_time_series_data is an instance method, so we instantiate first.
     
-    train_X, train_y = train[:, :-1], train[:, -1]
-    test_X, test_y = test[:, :-1], test[:, -1]
+    # We don't know input_dim yet (it depends on lags).
+    # Let's set it to 1 initially validation will fix it or we re-init?
+    # Actually, proper flow: prepare data -> determine dims -> init model.
+    # But to access helper we need instance.
+    # Let's clean this up by instantiating with dummy dims, then updating?
+    # OR we use the static method logic if exposed?
+    # prepare_time_series_data is an instance method I added.
+    
+    # Let's just init with ANY dim, and update it before building network?
+    # The network is built in __init__.
+    # This is a slight design flaw in my "helper in model" approach if __init__ builds net immediately.
+    # However, for this example, we can calculate expected dim easily: len(features) * n_lags.
+    
+    n_in = 1  # Previous timestep
+    n_out = 1 # Not used for features, but for target horizon if needed
+    
+    input_dim = len(features) * n_in
+    print(f"  Input Dimension: {input_dim} (Features * Lags)")
 
-    print(f"\nTraining samples: {len(train_X)}")
-    print(f"Testing samples: {len(test_X)}")
+    # Initialize LSTM model (using simplified API)
+    lstm = oad.LSTMModel(input_dim=input_dim, hidden_dim=24, output_dim=1)
 
-    # Create and train model using openad_lib
+    # Prepare Data using Model Helper
+    print("\nPreparing time series data (Creating lags)...")
+    X, y, dataset = lstm.prepare_time_series_data(
+        data, 
+        features=features, 
+        target=label, 
+        n_in=n_in
+    )
+
+    # Split Data (80/20)
+    split_idx = int(len(X) * 0.8)
+    X_train, y_train = X[:split_idx], y[:split_idx]
+    X_test, y_test = X[split_idx:], y[split_idx:]
+    
+    # Flatten y for training (1D array)
+    y_train = y_train.ravel()
+    y_test = y_test.ravel()
+
+    print(f"Training samples: {len(X_train)}")
+    print(f"Testing samples: {len(X_test)}")
+
+    # Train (Model handles scaling internally!)
     print("\nTraining LSTM model...")
-    # Note: input_dim must match the actual feature count after series_to_supervised
-    lstm = LSTMModel(input_dim=train_X.shape[1], hidden_dim=24, output_dim=1)
+    lstm.train(
+        X_train, 
+        y_train, 
+        epochs=50, 
+        verbose=True
+    )
+
+    # Evaluate
+    print("\nLSTM Evaluation Metrics (Test Set):")
+    # evaluate() handles scaling (inverse transforms internally)
+    metrics = lstm.evaluate(X_test, y_test)
+    print_metrics(metrics, title="LSTM Test Performance")
+
+    # Predict for plotting
+    train_pred = lstm.predict(X_train)
+    test_pred = lstm.predict(X_test)
     
-    # Note: openad_lib's fit expects unscaled data, but we need to use pre-scaled
-    # So we'll use the model's internal methods directly
-    lstm.fit(train_X, train_y, epochs=50, verbose=True)
-
-    # Predict
-    trainPredict = lstm.predict(train_X)
-    testPredict = lstm.predict(test_X)
-
-    # Inverse transform
-    trainPredict = scaler_y.inverse_transform(trainPredict)
-    testPredict = scaler_y.inverse_transform(testPredict)
-    train_y_inv = scaler_y.inverse_transform(train_y.reshape(-1, 1))
-    test_y_inv = scaler_y.inverse_transform(test_y.reshape(-1, 1))
-
-    # Calculate metrics
-    train_rmse = np.sqrt(mean_squared_error(train_y_inv, trainPredict))
-    test_rmse = np.sqrt(mean_squared_error(test_y_inv, testPredict))
-    train_mae = mean_absolute_error(train_y_inv, trainPredict)
-    test_mae = mean_absolute_error(test_y_inv, testPredict)
-    train_r2 = r2_score(train_y_inv, trainPredict)
-    test_r2 = r2_score(test_y_inv, testPredict)
-
-    print(f"\nLSTM Metrics:")
-    print(f"Train RMSE: {train_rmse:.2f}, Test RMSE: {test_rmse:.2f}")
-    print(f"Train MAE: {train_mae:.2f}, Test MAE: {test_mae:.2f}")
-    print(f"Train R²: {train_r2:.3f}, Test R²: {test_r2:.3f}")
+    # Note: Model scaler is fitted during training.
+    # We need to inverse transform the TRUE y values for plotting comparison,
+    # because 'y_train' passed to plot should ideally be in original scale.
+    # 'y_train' passed to fit IS unscaled (raw).
+    # 'y_train' we have here IS unscaled (raw).
+    # So we can just plot y_train directly!
+    # Wait, predict() returns inverse_transformed (original scale) values by default?
+    # Let's check model implementation:
+    # predict() -> returns self.scaler_y.inverse_transform(predictions). YES.
+    
+    # So we compare raw y vs predict() output. Simple!
 
     # Plotting
     print("\nGenerating prediction plot...")
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
     
-    ax1.plot(train_y_inv, label='Actual', color='blue', alpha=0.7)
-    ax1.plot(trainPredict, label='Predicted', color='red', linestyle='--')
+    ax1.plot(y_train, label='Actual', color='blue', alpha=0.7)
+    ax1.plot(train_pred, label='Predicted', color='red', linestyle='--')
     ax1.set_title("Training Set")
     ax1.set_xlabel("Sample Index")
     ax1.set_ylabel("Biogas Production")
     ax1.legend()
     ax1.grid(True, alpha=0.3)
     
-    ax2.plot(test_y_inv, label='Actual', color='blue', alpha=0.7)
-    ax2.plot(testPredict, label='Predicted', color='red', linestyle='--')
+    ax2.plot(y_test, label='Actual', color='blue', alpha=0.7)
+    ax2.plot(test_pred, label='Predicted', color='red', linestyle='--')
     ax2.set_title("Testing Set")
     ax2.set_xlabel("Sample Index")
     ax2.set_ylabel("Biogas Production")
@@ -155,10 +159,9 @@ def main():
     plt.tight_layout()
     
     # Save plot
-    images_dir = os.path.join(project_root, 'images')
-    if not os.path.exists(images_dir):
-        os.makedirs(images_dir)
-    save_path = os.path.join(images_dir, 'lstm_prediction_result.png')
+    images_dir = current_dir.parent / 'images'
+    images_dir.mkdir(exist_ok=True)
+    save_path = images_dir / 'lstm_prediction_result.png'
     plt.savefig(save_path)
     print(f"Plot saved to {save_path}")
 

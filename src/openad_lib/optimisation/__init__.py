@@ -8,5 +8,6 @@ Provides optimization and calibration tools:
 """
 
 from openad_lib.optimisation.am2_calibration import AM2Calibrator
+from openad_lib.optimisation.adm1_calibration import ADM1Calibrator
 
-__all__ = ["AM2Calibrator"]
+__all__ = ["AM2Calibrator", "ADM1Calibrator"]

@@ -25,6 +25,8 @@ from typing import Dict, Optional, Tuple, List, Union
 from dataclasses import dataclass, field
 import warnings
 
+from openad_lib.models.base import MechanisticModel
+
 
 @dataclass
 class AM2Parameters:
@@ -95,7 +97,7 @@ class AM2Parameters:
         }
 
 
-class AM2Model:
+class AM2Model(MechanisticModel):
     """
     Simplified Two-Step Anaerobic Digestion Model (AM2).
     
@@ -136,9 +138,10 @@ class AM2Model:
         Args:
             params: AM2Parameters object. If None, uses default parameters.
         """
+        super().__init__(params)
         self.params = params or AM2Parameters()
-        self.data: Optional[pd.DataFrame] = None
         self.results: Optional[pd.DataFrame] = None
+        self.metrics: Optional[Dict[str, float]] = None
         self._initial_state: np.ndarray = np.zeros(5)
     
     def load_data(
@@ -622,3 +625,132 @@ class AM2Model:
             raise ValueError("No results available. Run simulation first.")
         self.results.to_csv(output_path, index=False)
         print(f"Results saved to {output_path}")
+    
+    # ========== Base Class Interface Methods ==========
+    
+    def simulate(
+        self,
+        t_span: Optional[Tuple[float, float]] = None,
+        t_eval: Optional[np.ndarray] = None,
+        **kwargs
+    ) -> Dict[str, np.ndarray]:
+        """
+        Run mechanistic simulation (implements MechanisticModel.simulate).
+        
+        This is the base class interface. Use run() for the full workflow.
+        
+        Parameters
+        ----------
+        t_span : tuple, optional
+            Not used for AM2 (uses loaded data time points)
+        t_eval : np.ndarray, optional
+            Not used for AM2 (uses loaded data time points)
+        **kwargs
+            Additional parameters
+            
+        Returns
+        -------
+        results : dict
+            Dictionary with state trajectories
+        """
+        if self.data is None:
+            raise ValueError("No data loaded. Call load_data() first.")
+        
+        # Run simulation
+        AM2 = self._simulate()
+        
+        # Return as dictionary
+        return {
+            'time': self.data['time'].values,
+            'S1': AM2[:, 0],
+            'X1': AM2[:, 1],
+            'S2': AM2[:, 2],
+            'X2': AM2[:, 3],
+            'Q': AM2[:, 4]
+        }
+    
+    def update_params(self, params: Dict[str, float]):
+        """
+        Update model parameters (implements MechanisticModel.update_params).
+        
+        Used during calibration to set new parameter values.
+        
+        Parameters
+        ----------
+        params : dict
+            Dictionary of parameter names and values
+        """
+        for name, value in params.items():
+            if hasattr(self.params, name):
+                setattr(self.params, name, value)
+            else:
+                raise ValueError(f"Unknown parameter: {name}")
+    
+    def evaluate(
+        self,
+        y_true: Optional[np.ndarray] = None,
+        y_pred: Optional[np.ndarray] = None
+    ) -> Dict[str, float]:
+        """
+        Compute evaluation metrics (overrides base class).
+        
+        If y_true and y_pred are provided, computes metrics directly.
+        Otherwise, uses the existing evaluate() logic for AM2.
+        
+        Parameters
+        ----------
+        y_true : np.ndarray, optional
+            True values
+        y_pred : np.ndarray, optional
+            Predicted values
+            
+        Returns
+        -------
+        metrics : dict
+            Dictionary with metric names and values
+        """
+        if y_true is not None and y_pred is not None:
+            from openad_lib.utils.metrics import compute_metrics
+            self.metrics = compute_metrics(y_true, y_pred)
+            return self.metrics
+        
+        # Use existing AM2-specific evaluate logic
+        if self.results is None:
+            raise ValueError("No results to evaluate. Run simulation first.")
+        
+        def rmse(predictions: np.ndarray, targets: np.ndarray) -> float:
+            return np.sqrt(np.mean((predictions - targets) ** 2))
+        
+        metrics = {}
+        
+        # Calculate RMSE for each measured output variable
+        if 'S1_measured' in self.results.columns:
+            valid_mask = ~self.results['S1_measured'].isna()
+            if valid_mask.sum() > 0:
+                metrics['S1_RMSE'] = rmse(
+                    self.results.loc[valid_mask, 'S1'].values,
+                    self.results.loc[valid_mask, 'S1_measured'].values
+                )
+        
+        if 'S2_measured' in self.results.columns:
+            valid_mask = ~self.results['S2_measured'].isna()
+            if valid_mask.sum() > 0:
+                metrics['S2_RMSE'] = rmse(
+                    self.results.loc[valid_mask, 'S2'].values,
+                    self.results.loc[valid_mask, 'S2_measured'].values
+                )
+        
+        if 'Q_measured' in self.results.columns:
+            valid_mask = ~self.results['Q_measured'].isna()
+            if valid_mask.sum() > 0:
+                metrics['Q_RMSE'] = rmse(
+                    self.results.loc[valid_mask, 'Q'].values,
+                    self.results.loc[valid_mask, 'Q_measured'].values
+                )
+        
+        if metrics:
+            metrics['Overall_RMSE'] = np.mean(list(metrics.values()))
+        
+        self.metrics = metrics
+        return metrics
+

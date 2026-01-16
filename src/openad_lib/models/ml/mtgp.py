@@ -17,7 +17,10 @@ import gpytorch
 import numpy as np
 import pandas as pd
 from typing import Optional, Tuple, List, Dict, Union
+from pathlib import Path
 from sklearn.preprocessing import StandardScaler
+
+from openad_lib.models.base import MLModel
 
 
 class _MultitaskGPModelLMC(gpytorch.models.ApproximateGP):
@@ -68,7 +71,7 @@ class _MultitaskGPModelLMC(gpytorch.models.ApproximateGP):
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
 
-class MultitaskGP:
+class MultitaskGP(MLModel):
     """
     Multi-Task Gaussian Process for multi-output AD prediction.
     
@@ -108,6 +111,8 @@ class MultitaskGP:
             log_transform: Whether to apply log transform to outputs
             device: 'cuda', 'cpu', or None (auto-detect)
         """
+        super().__init__(params=None)
+        
         self.num_tasks = num_tasks
         self.num_latents = num_latents
         self.n_inducing = n_inducing
@@ -128,6 +133,10 @@ class MultitaskGP:
         
         self.is_fitted = False
         self.training_losses: List[float] = []
+        
+        # Base class compatibility
+        self.results: Optional[Dict] = None
+        self.metrics: Optional[Dict[str, float]] = None
     
     def _prepare_data(
         self,
@@ -293,22 +302,64 @@ class MultitaskGP:
         Returns:
             Dictionary with metrics per task
         """
-        from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+        # Use unified metrics from utils
+        from openad_lib.utils.metrics import compute_multi_output_metrics
         
         mean_pred = self.predict(X, return_std=False)
         
         if task_names is None:
             task_names = [f'Task_{i}' for i in range(self.num_tasks)]
         
-        metrics = {}
-        for i, name in enumerate(task_names):
-            metrics[name] = {
-                'rmse': np.sqrt(mean_squared_error(Y[:, i], mean_pred[:, i])),
-                'mae': mean_absolute_error(Y[:, i], mean_pred[:, i]),
-                'r2': r2_score(Y[:, i], mean_pred[:, i])
-            }
+        self.metrics = compute_multi_output_metrics(Y, mean_pred, output_names=task_names)
         
-        return metrics
+        return self.metrics
+    
+    # ========== Base Class Interface Methods ==========
+    
+    def load_data(self, filepath: Path) -> pd.DataFrame:
+        """
+        Load multi-output data from file (implements BaseModel.load_data).
+        
+        Parameters
+        ----------
+        filepath : str or Path
+            Path to CSV file
+            
+        Returns
+        -------
+        data : pd.DataFrame
+            Loaded dataframe
+        """
+        self.data = pd.read_csv(filepath)
+        return self.data
+    
+    def train(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None,
+        **kwargs
+    ):
+        """
+        Train the model (implements MLModel.train).
+        
+        This is an alias for fit() to comply with base class interface.
+        
+        Parameters
+        ----------
+        X_train : np.ndarray
+            Training features
+        y_train : np.ndarray
+            Training targets (must be 2D for multi-task)
+        X_val : not used
+            Validation features (not used currently)
+        y_val : np.ndarray, optional
+            Validation targets (not used currently)
+        **kwargs
+            Additional training options (epochs, verbose)
+        """
+        return self.fit(X_train, y_train, **kwargs)
     
     def plot_predictions(
         self,

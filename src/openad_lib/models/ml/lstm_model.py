@@ -19,51 +19,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.model_selection import TimeSeriesSplit
 from typing import Optional, Tuple, List, Dict, Union
+from pathlib import Path
 import warnings
 
-
-def series_to_supervised(
-    data: np.ndarray, 
-    n_in: int = 1, 
-    n_out: int = 1, 
-    dropnan: bool = True
-) -> pd.DataFrame:
-    """
-    Convert time series to supervised learning format.
-    
-    Args:
-        data: Time series data as numpy array
-        n_in: Number of lag observations as input (X)
-        n_out: Number of observations as output (y)
-        dropnan: Whether to drop rows with NaN values
-    
-    Returns:
-        DataFrame framed for supervised learning
-    """
-    n_vars = 1 if type(data) is list else data.shape[1]
-    df = pd.DataFrame(data)
-    cols, names = [], []
-    
-    # Input sequence (t-n, ..., t-1)
-    for i in range(n_in, 0, -1):
-        cols.append(df.shift(i))
-        names += [(f'var{j+1}(t-{i})') for j in range(n_vars)]
-    
-    # Forecast sequence (t, t+1, ..., t+n)
-    for i in range(0, n_out):
-        cols.append(df.shift(-i))
-        if i == 0:
-            names += [(f'var{j+1}(t)') for j in range(n_vars)]
-        else:
-            names += [(f'var{j+1}(t+{i})') for j in range(n_vars)]
-    
-    agg = pd.concat(cols, axis=1)
-    agg.columns = names
-    
-    if dropnan:
-        agg.dropna(inplace=True)
-    
-    return agg
+from openad_lib.models.base import MLModel
 
 
 class _LSTMNetwork(nn.Module):
@@ -99,7 +58,7 @@ class _LSTMNetwork(nn.Module):
         return output
 
 
-class LSTMModel:
+class LSTMModel(MLModel):
     """
     LSTM-based surrogate model for AD process prediction.
     
@@ -142,6 +101,8 @@ class LSTMModel:
             learning_rate: Optimizer learning rate
             device: 'cuda', 'cpu', or None (auto-detect)
         """
+        super().__init__(params=None)
+        
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.output_dim = output_dim
@@ -167,6 +128,115 @@ class LSTMModel:
         # Training state
         self.is_fitted = False
         self.training_history: List[float] = []
+        
+        # Base class compatibility
+        self.results: Optional[Dict] = None
+        self.metrics: Optional[Dict[str, float]] = None
+
+    @staticmethod
+    def series_to_supervised(
+        data: Union[np.ndarray, pd.DataFrame], 
+        n_in: int = 1, 
+        n_out: int = 1, 
+        dropnan: bool = True
+    ) -> pd.DataFrame:
+        """
+        Convert time series to supervised learning format (static utility).
+        
+        Args:
+            data: Time series data
+            n_in: Number of lag observations as input (X)
+            n_out: Number of observations as output (y)
+            dropnan: Whether to drop rows with NaN values
+        
+        Returns:
+            DataFrame framed for supervised learning
+        """
+        n_vars = 1 if type(data) is list else data.shape[1]
+        df = pd.DataFrame(data)
+        cols, names = [], []
+        
+        # Input sequence (t-n, ..., t-1)
+        for i in range(n_in, 0, -1):
+            cols.append(df.shift(i))
+            names += [(f'var{j+1}(t-{i})') for j in range(n_vars)]
+        
+        # Forecast sequence (t, t+1, ..., t+n)
+        for i in range(0, n_out):
+            cols.append(df.shift(-i))
+            if i == 0:
+                names += [(f'var{j+1}(t)') for j in range(n_vars)]
+            else:
+                names += [(f'var{j+1}(t+{i})') for j in range(n_vars)]
+        
+        agg = pd.concat(cols, axis=1)
+        agg.columns = names
+        
+        if dropnan:
+            agg.dropna(inplace=True)
+        
+        return agg
+
+    def prepare_time_series_data(
+        self, 
+        data: pd.DataFrame, 
+        features: List[str], 
+        target: str,
+        n_in: int = 1,
+        n_out: int = 1
+    ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+        """
+        Preprocess time series data for training.
+        
+        Helper method that handles:
+        1. Feature selection
+        2. Supervised learning transformation (lags)
+        3. Separation into X and y
+        
+        Args:
+            data: Raw DataFrame
+            features: List of feature column names
+            target: Target column name
+            n_in: Number of lag steps (input window)
+            n_out: Number of forecast steps (horizon)
+            
+        Returns:
+            X: Input features array
+            y: Target array
+            reframed: The processed DataFrame
+        """
+        # Ensure we have the data
+        if not all(col in data.columns for col in features + [target]):
+            missing = [c for c in features + [target] if c not in data.columns]
+            raise ValueError(f"Missing columns: {missing}")
+            
+        # Select columns
+        values = data[features].values.astype('float32')
+        target_vals = data[[target]].values.astype('float32')
+        
+        # Use series_to_supervised on features
+        # 1. Create Lagged Features
+        df_features = pd.DataFrame(values, columns=features)
+        cols, names = [], []
+        for i in range(n_in, 0, -1):
+            cols.append(df_features.shift(i))
+            names += [f'{col}(t-{i})' for col in features]
+        
+        X_df = pd.concat(cols, axis=1)
+        X_df.columns = names
+        
+        # 2. Target
+        y_df = pd.DataFrame(target_vals, columns=[target])
+        
+        # 3. Concatenate and Drop NaNs
+        dataset = pd.concat([X_df, y_df], axis=1)
+        dataset.dropna(inplace=True)
+        
+        # 4. Split
+        X = dataset.iloc[:, :-1].values
+        y = dataset.iloc[:, -1].values
+        
+        return X, y, dataset
     
     def _prepare_data(
         self, 
@@ -301,111 +371,55 @@ class LSTMModel:
         y_pred = self.predict(X)
         y_true = y.reshape(-1, 1) if y.ndim == 1 else y
         
-        metrics = {
-            'rmse': np.sqrt(mean_squared_error(y_true, y_pred)),
-            'mae': mean_absolute_error(y_true, y_pred),
-            'r2': r2_score(y_true, y_pred)
-        }
+        # Use unified metrics from utils
+        from openad_lib.utils.metrics import compute_metrics
+        self.metrics = compute_metrics(y_true.flatten(), y_pred.flatten())
         
-        return metrics
+        return self.metrics
     
-    def cross_validate(
+    # ========== Base Class Interface Methods ==========
+    
+    def load_data(self, filepath: Path) -> pd.DataFrame:
+        """
+        Load time series data from file (implements BaseModel.load_data).
+        
+        Parameters
+        ----------
+        filepath : str or Path
+            Path to CSV file
+            
+        Returns
+        -------
+        data : pd.DataFrame
+            Loaded dataframe
+        """
+        self.data = pd.read_csv(filepath)
+        return self.data
+    
+    def train(
         self,
-        X: np.ndarray,
-        y: np.ndarray,
-        n_splits: int = 5,
-        epochs: int = 50,
-        batch_size: int = 4,
-        verbose: bool = True
-    ) -> Dict[str, List[float]]:
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_val: Optional[np.ndarray] = None,
+        y_val: Optional[np.ndarray] = None,
+        **kwargs
+    ):
         """
-        Perform time series cross-validation.
+        Train the model (implements MLModel.train).
         
-        Args:
-            X: Input features array
-            y: Target values array
-            n_splits: Number of CV folds
-            epochs: Training epochs per fold
-            batch_size: Mini-batch size
-            verbose: Print progress
+        This is an alias for fit() to comply with base class interface.
         
-        Returns:
-            Dictionary with train and test metrics for each fold
+        Parameters
+        ----------
+        X_train : np.ndarray
+            Training features
+        y_train : np.ndarray
+            Training targets
+        X_val : np.ndarray, optional
+            Validation features (not used currently)
+        y_val : np.ndarray, optional
+            Validation targets (not used currently)
+        **kwargs
+            Additional training options (epochs, batch_size, verbose)
         """
-        tscv = TimeSeriesSplit(n_splits=n_splits)
-        
-        results = {
-            'train_rmse': [], 'test_rmse': [],
-            'train_mae': [], 'test_mae': [],
-            'train_r2': [], 'test_r2': []
-        }
-        
-        for fold, (train_idx, test_idx) in enumerate(tscv.split(X)):
-            if verbose:
-                print(f"\n--- Fold {fold + 1}/{n_splits} ---")
-            
-            X_train, X_test = X[train_idx], X[test_idx]
-            y_train, y_test = y[train_idx], y[test_idx]
-            
-            # Reset model
-            self.model = _LSTMNetwork(
-                self.input_dim, self.hidden_dim, self.output_dim,
-                self.num_layers, self.dropout
-            ).to(self.device)
-            self.is_fitted = False
-            
-            # Train
-            self.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=False)
-            
-            # Evaluate
-            train_metrics = self.evaluate(X_train, y_train)
-            test_metrics = self.evaluate(X_test, y_test)
-            
-            results['train_rmse'].append(train_metrics['rmse'])
-            results['test_rmse'].append(test_metrics['rmse'])
-            results['train_mae'].append(train_metrics['mae'])
-            results['test_mae'].append(test_metrics['mae'])
-            results['train_r2'].append(train_metrics['r2'])
-            results['test_r2'].append(test_metrics['r2'])
-            
-            if verbose:
-                print(f"Train RMSE: {train_metrics['rmse']:.4f}, Test RMSE: {test_metrics['rmse']:.4f}")
-                print(f"Train R²: {train_metrics['r2']:.4f}, Test R²: {test_metrics['r2']:.4f}")
-        
-        return results
-    
-    def save(self, path: str) -> None:
-        """Save model to file."""
-        torch.save({
-            'model_state_dict': self.model.state_dict(),
-            'config': {
-                'input_dim': self.input_dim,
-                'hidden_dim': self.hidden_dim,
-                'output_dim': self.output_dim,
-                'num_layers': self.num_layers,
-                'dropout': self.dropout
-            },
-            'scaler_X': self.scaler_X,
-            'scaler_y': self.scaler_y
-        }, path)
-    
-    @classmethod
-    def load(cls, path: str) -> 'LSTMModel':
-        """Load model from file."""
-        checkpoint = torch.load(path)
-        config = checkpoint['config']
-        
-        model = cls(
-            input_dim=config['input_dim'],
-            hidden_dim=config['hidden_dim'],
-            output_dim=config['output_dim'],
-            num_layers=config['num_layers'],
-            dropout=config['dropout']
-        )
-        
-        model.model.load_state_dict(checkpoint['model_state_dict'])
-        model.scaler_X = checkpoint['scaler_X']
-        model.scaler_y = checkpoint['scaler_y']
-        model.is_fitted = True
-        
-        return model
+        return self.fit(X_train, y_train, **kwargs)

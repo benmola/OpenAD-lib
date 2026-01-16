@@ -2,16 +2,16 @@
 Multi-Task GP Prediction Example
 ================================
 
-This script demonstrates MTGP-based multi-output prediction using openad_lib,
-with data handling matching the reference implementation.
+This script demonstrates Multi-Task Gaussian Process for multi-output prediction
+using the unified MLModel interface.
 
-Features:
-- Uses alternating train/test split (matching reference)
-- Log-transform for outputs
-- Uses openad_lib.models.ml.MultitaskGP
+Workflow:
+1. Load Data: Standard CSV format.
+2. Initialize: Use MultitaskGP (MLModel).
+3. Train: Use unified train() method.
+4. Evaluate: Use unified evaluate() method for multi-output metrics.
 
-Usage:
-    python examples/05_mtgp_prediction.py
+New in v0.2.0: Uses simplified API with top-level imports.
 """
 
 import os
@@ -19,28 +19,32 @@ import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 # Add src to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+current_dir = Path(__file__).parent.resolve()
+src_path = current_dir.parent / 'src'
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 try:
-    from openad_lib.models.ml import MultitaskGP
+    import openad_lib as oad
+    from openad_lib.utils.metrics import print_metrics
 except ImportError as e:
     print(f"Error importing openad_lib: {e}")
     sys.exit(1)
 
 def main():
     print("="*60)
-    print("Multi-Task GP Prediction")
+    print("Multi-Task GP Prediction (Updated Structure)")
     print("="*60)
 
     # Paths
-    base_dir = os.path.dirname(__file__)
-    project_root = os.path.join(base_dir, '..')
-    data_path = os.path.join(project_root, 'src', 'openad_lib', 'data', 'sample_ad_process_data.csv')
+    base_data_path = src_path / 'openad_lib' / 'data'
+    data_path = base_data_path / 'sample_ad_process_data.csv'
 
     # Load data
-    if os.path.exists(data_path):
+    if data_path.exists():
         data = pd.read_csv(data_path)
         print(f"\nLoaded {len(data)} samples from AD process data")
         
@@ -63,7 +67,7 @@ def main():
         print(f"Input features: {input_cols}")
         print(f"Output tasks: {output_cols}")
     else:
-        print("Error: Data file not found")
+        print(f"Error: Data file not found at {data_path}")
         return
 
     # Split data using alternating indices (matching reference)
@@ -77,28 +81,37 @@ def main():
     print(f"Testing samples: {len(X_test)}")
 
     # Initialize MTGP using openad_lib
-    num_tasks = Y.shape[1]
-    print(f"\nInitializing MTGP with {num_tasks} tasks...")
-    mtgp = MultitaskGP(
-        num_tasks=num_tasks,
-        num_latents=min(3, num_tasks),
+    # Initialize Multi-Task GP model (using simplified API)
+    print(f"\nInitializing MTGP with {len(output_cols)} tasks...")
+    mtgp = oad.MultitaskGP(
+        n_tasks=len(output_cols),
+        num_latents=min(3, len(output_cols)),
         n_inducing=60,
         learning_rate=0.1,
         log_transform=True  
     )
     
-    # Train
+    # Train using unified API
     print("Training MTGP model (500 iterations)...")
-    mtgp.fit(X_train, Y_train, epochs=500, verbose=True)
+    mtgp.train(X_train, Y_train, epochs=500, verbose=True)
     
-    # Predict
+    # Predict using unified API
     print("\nPredicting on test set...")
+    # predict() returns mean, but we want std too for plot. 
+    # Base.predict returns ndarray. Only MTGP specific predict handles return_std.
+    # We can still use specific method if needed, but evaluate uses base predict.
+    # Let's use the specific one for plotting confidence intervals.
     mean, lower, upper = mtgp.predict(X_test, return_std=True)
     
-    # Evaluate
+    # Evaluate using unified API
+    print("\nEvaluation Metrics (Test Set):")
+    # evaluate() calls predict() internally and computes metrics per task
     metrics = mtgp.evaluate(X_test, Y_test, task_names=output_cols)
-    for task, vals in metrics.items():
-        print(f"{task}: RMSE={vals['rmse']:.4f}, MAE={vals['mae']:.4f}, R²={vals['r2']:.4f}")
+    
+    # Print metrics nicely
+    # metrics format: {'SCODout': {'rmse': ..., 'r2': ...}, ...}
+    for task_name, task_metrics in metrics.items():
+        print_metrics(task_metrics, title=f"Task: {task_name}")
     
     # Plot results
     print("Generating plots with uncertainty intervals...")
@@ -123,10 +136,9 @@ def main():
     plt.tight_layout()
     
     # Save plot
-    images_dir = os.path.join(project_root, 'images')
-    if not os.path.exists(images_dir):
-        os.makedirs(images_dir)
-    save_path = os.path.join(images_dir, 'mtgp_prediction_result.png')
+    images_dir = current_dir.parent / 'images'
+    images_dir.mkdir(exist_ok=True)
+    save_path = images_dir / 'mtgp_prediction_result.png'
     plt.savefig(save_path)
     print(f"\nPlot saved to {save_path}")
     
