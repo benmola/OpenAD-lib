@@ -28,8 +28,7 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 try:
-    import openad_lib as oad
-    from openad_lib.utils.metrics import print_metrics
+    import openad_lib as openad
 except ImportError as e:
     print(f"Error importing openad_lib: {e}")
     sys.exit(1)
@@ -83,8 +82,8 @@ def main():
     # Initialize MTGP using openad_lib
     # Initialize Multi-Task GP model (using simplified API)
     print(f"\nInitializing MTGP with {len(output_cols)} tasks...")
-    mtgp = oad.MultitaskGP(
-        n_tasks=len(output_cols),
+    mtgp = openad.MultitaskGP(
+        num_tasks=len(output_cols),  # Note: parameter is 'num_tasks' not 'n_tasks'
         num_latents=min(3, len(output_cols)),
         n_inducing=60,
         learning_rate=0.1,
@@ -111,12 +110,12 @@ def main():
     # Print metrics nicely
     # metrics format: {'SCODout': {'rmse': ..., 'r2': ...}, ...}
     for task_name, task_metrics in metrics.items():
-        print_metrics(task_metrics, title=f"Task: {task_name}")
+        openad.utils.metrics.print_metrics(task_metrics, title=f"Task: {task_name}")
     
     # Plot results
     print("Generating plots with uncertainty intervals...")
-    fig, axes = plt.subplots(num_tasks, 1, figsize=(10, 4*num_tasks))
-    if num_tasks == 1:
+    fig, axes = plt.subplots(len(output_cols), 1, figsize=(10, 4*len(output_cols)))
+    if len(output_cols) == 1:
         axes = [axes]
     
     for i, ax in enumerate(axes):
@@ -129,7 +128,7 @@ def main():
         ax.fill_between(X_test[:, 0], lower[:, i], upper[:, i], color='black', alpha=0.2, label="95% Confidence")
         
         ax.set_title(output_cols[i])
-        ax.set_xlabel("Time" if i == num_tasks-1 else "")
+        ax.set_xlabel("Time" if i == len(output_cols)-1 else "")
         ax.legend()
         ax.grid(True, alpha=0.3)
     

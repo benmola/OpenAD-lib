@@ -73,7 +73,7 @@ def __getattr__(name):
         from openad_lib.data.datasets import FeedstockDataset
         return FeedstockDataset
     
-    # Submodules (for backward compatibility)
+    # Submodules (for backward compatibility and direct access)
     elif name == "mechanistic":
         from openad_lib.models import mechanistic
         return mechanistic
@@ -83,6 +83,12 @@ def __getattr__(name):
     elif name == "data":
         from openad_lib import data
         return data
+    elif name == "utils":
+        from openad_lib import utils
+        return utils
+    elif name == "preprocessing":
+        from openad_lib import preprocessing
+        return preprocessing
     
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
@@ -116,5 +122,7 @@ __all__ = [
     "mechanistic",
     "ml",
     "data",
+    "utils",
+    "preprocessing",
 ]
 

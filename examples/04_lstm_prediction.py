@@ -118,7 +118,7 @@ def main():
     print("\nLSTM Evaluation Metrics (Test Set):")
     # evaluate() handles scaling (inverse transforms internally)
     metrics = lstm.evaluate(X_test, y_test)
-    print_metrics(metrics, title="LSTM Test Performance")
+    openad.utils.metrics.print_metrics(metrics, title="LSTM Test Performance")
 
     # Predict for plotting
     train_pred = lstm.predict(X_train)

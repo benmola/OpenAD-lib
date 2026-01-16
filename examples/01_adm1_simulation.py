@@ -27,8 +27,7 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 try:
-    import openad_lib as oad
-    from openad_lib.utils.metrics import print_metrics
+    import openad_lib as openad
 except ImportError as e:
     print(f"Error importing openad_lib: {e}")
     sys.exit(1)
@@ -56,7 +55,7 @@ def run_pipeline():
     print("\n--- Step 1: Generating Influent Data (ACoD) ---")
     # Generate influent from feedstock data
     print("\nGenerating influent parameters...")
-    influent_df = oad.acod.generate_influent_data(str(ratios_file))
+    influent_df = openad.acod.generate_influent_data(str(ratios_file))
     print(f"Generated influent data: {influent_df.shape}")
 
     # -------------------------------------------------------------------------
@@ -64,7 +63,7 @@ def run_pipeline():
     # -------------------------------------------------------------------------
     # Initialize ADM1 model (using simplified API)
     print("\nInitializing ADM1 model...")
-    model = oad.ADM1Model()
+    model = openad.ADM1Model()
     
     # Run simulation using new API
     simulation_output = model.simulate(influent_df)
@@ -83,7 +82,7 @@ def run_pipeline():
     # -------------------------------------------------------------------------
     print("\n--- Step 3: Evaluation & Visualization ---")
     
-    has_measured = False
+    has_measured = True
     if measured_data_file.exists():
         print(f"Loading measured data from {measured_data_file}")
         try:
