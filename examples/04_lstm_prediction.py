@@ -17,7 +17,6 @@ New in v0.2.0: Uses simplified API with top-level imports and load_sample_data()
 import sys
 import numpy as np
 from pathlib import Path
-import pandas as pd
 # Add src to path for development
 current_dir = Path(__file__).parent.resolve()
 src_path = current_dir.parent / 'src'
@@ -104,7 +103,6 @@ def main():
     # Combine train and test for visualization
     y_full = np.concatenate([y_train, y_test])
     pred_full = np.concatenate([train_pred, test_pred])
-    pd.DataFrame(pred_full, columns=['Predicted_Biogas']).to_csv('lstm_predictions.csv', index=False)
     n_train = len(y_train)
     train_idx = np.arange(n_train)
     test_idx = np.arange(n_train, len(y_full))
