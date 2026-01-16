@@ -310,11 +310,11 @@ Learn by running these tutorials directly in your browser:
 
 | Notebook | Description | Open in Colab |
 |----------|-------------|---------------|
-| [01_ADM1_Tutorial](notebooks/01_ADM1_Tutorial.ipynb) | Full ADM1 mechanistic model | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/01_ADM1_Tutorial.ipynb) |
-| [02_AM2_Modelling](notebooks/02_AM2_Modelling.ipynb) | AM2 simulation & calibration | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/02_AM2_Modelling.ipynb) |
-| [03_LSTM_Prediction](notebooks/03_LSTM_Prediction.ipynb) | LSTM surrogate model | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/03_LSTM_Prediction.ipynb) |
-| [04_MTGP_Prediction](notebooks/04_MTGP_Prediction.ipynb) | Multi-Task GP with uncertainty | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/04_MTGP_Prediction.ipynb) |
-| [05_MPC_Control](notebooks/05_MPC_Control.ipynb) | Model Predictive Control | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/05_MPC_Control.ipynb) |
+| [01_ADM1_Tutorial](notebooks/01_ADM1_Tutorial_Updated.ipynb) | Full ADM1 mechanistic model | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/01_ADM1_Tutorial_Updated.ipynb) |
+| [02_AM2_Modelling](notebooks/02_AM2_Modelling_Updated.ipynb) | AM2 simulation & calibration | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/02_AM2_Modelling_Updated.ipynb) |
+| [03_LSTM_Prediction](notebooks/03_LSTM_Prediction_Updated.ipynb) | LSTM surrogate model | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/03_LSTM_Prediction_Updated.ipynb) |
+| [04_MTGP_Prediction](notebooks/04_MTGP_Prediction_Updated.ipynb) | Multi-Task GP with uncertainty | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/04_MTGP_Prediction_Updated.ipynb) |
+| [05_MPC_Control](notebooks/05_MPC_Control_Updated.ipynb) | Model Predictive Control | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/benmola/OpenAD-lib/blob/main/notebooks/05_MPC_Control_Updated.ipynb) |
 
 ## 📚 References
 
