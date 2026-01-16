@@ -94,14 +94,28 @@ def calculate_values(df_substrate, df_conversion_factors, B_0_values, VFA_values
 
     return results
 
-def generate_influent_data(ratios_csv_path, output_csv_path=None, substrate_data=None):
+def generate_influent_data(ratios_data, output_csv_path=None, substrate_data=None):
     """
     Main function to generate influent data for ADM1 simulation.
     
     Args:
-        ratios_csv_path: Path to the CSV containing substrate ratios over time.
-        output_csv_path: Optional path to save the generated influent parameters. If None, no file is saved.
+        ratios_data: Either a path to CSV file (str/Path) OR a pandas DataFrame 
+                     containing substrate ratios over time.
+        output_csv_path: Optional path to save the generated influent parameters. 
+                         If None, no file is saved.
         substrate_data: Optional dictionary overriding default substrate properties.
+        
+    Returns:
+        pd.DataFrame: Influent parameters for ADM1 simulation.
+        
+    Example:
+        >>> import openad_lib as openad
+        >>> # Option 1: Load data first, then generate influent
+        >>> feedstock = openad.load_sample_data('feedstock')
+        >>> influent = openad.acod.generate_influent_data(feedstock)
+        >>> 
+        >>> # Option 2: Use file path directly
+        >>> influent = openad.acod.generate_influent_data('path/to/Feed_Data.csv')
     """
     
     # Default Substrate Data (from user code)
@@ -136,9 +150,16 @@ def generate_influent_data(ratios_csv_path, output_csv_path=None, substrate_data
     df_conversion_factors = pd.DataFrame(conversion_factors)
     M_N = 14.007
 
-    # Load Data
-    print(f"Reading ratios from {ratios_csv_path}")
-    ratios_df = pd.read_csv(ratios_csv_path)
+    # Handle both DataFrame and file path inputs
+    if isinstance(ratios_data, pd.DataFrame):
+        ratios_df = ratios_data.copy()
+        print("Calculating influent parameters from DataFrame...")
+    else:
+        # Assume it's a file path
+        from pathlib import Path
+        ratios_path = Path(ratios_data)
+        print(f"Reading ratios from {ratios_path}")
+        ratios_df = pd.read_csv(ratios_path)
     
     # Identify substrate columns (exclude known metadata columns if any, or just use intersection)
     # The user's Data.csv has 'time' and many other cols. We only want substrates.

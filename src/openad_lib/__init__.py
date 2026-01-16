@@ -32,6 +32,7 @@ from openad_lib.config import config, Config
 # Lazy imports for main classes to avoid heavy dependencies at import time
 def __getattr__(name):
     """Lazy loading of main classes."""
+    import importlib
     
     # Mechanistic models
     if name == "ADM1Model":
@@ -74,24 +75,19 @@ def __getattr__(name):
         return FeedstockDataset
     
     # Submodules (for backward compatibility and direct access)
+    # Use importlib to avoid recursive __getattr__ calls
     elif name == "mechanistic":
-        from openad_lib.models import mechanistic
-        return mechanistic
+        return importlib.import_module("openad_lib.models.mechanistic")
     elif name == "ml":
-        from openad_lib.models import ml
-        return ml
+        return importlib.import_module("openad_lib.models.ml")
     elif name == "data":
-        from openad_lib import data
-        return data
+        return importlib.import_module("openad_lib.data")
     elif name == "utils":
-        from openad_lib import utils
-        return utils
+        return importlib.import_module("openad_lib.utils")
     elif name == "preprocessing":
-        from openad_lib import preprocessing
-        return preprocessing
+        return importlib.import_module("openad_lib.preprocessing")
     elif name == "plots":
-        from openad_lib.utils import plots
-        return plots
+        return importlib.import_module("openad_lib.utils.plots")
     
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

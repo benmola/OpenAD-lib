@@ -5,79 +5,50 @@ LSTM Prediction Example
 This script demonstrates LSTM-based biogas prediction using the unified MLModel interface.
 
 Workflow:
-1. Load Data: Standard CSV format.
+1. Load Data: Use load_sample_data() for built-in sample data.
 2. Initialize: Use LSTMModel (MLModel).
 3. Preprocess: Use built-in model.prepare_time_series_data() for lags.
 4. Train: Use unified train() method (handles scaling automatically).
 5. Evaluate: Use unified evaluate() method.
 
-New in v0.2.0: Uses simplified API with top-level imports.
+New in v0.2.0: Uses simplified API with top-level imports and load_sample_data().
 """
 
-import os
 import sys
-import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
 
-# Add src to path
+# Add src to path for development
 current_dir = Path(__file__).parent.resolve()
 src_path = current_dir.parent / 'src'
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-try:
-    import openad_lib as openad
-    from openad_lib.utils.metrics import print_metrics
-except ImportError as e:
-    print(f"Error importing openad_lib: {e}")
-    sys.exit(1)
+import openad_lib as openad
+from openad_lib.utils.metrics import print_metrics
 
 def main():
     print("="*60)
     print("LSTM Model for Biogas Prediction (Simplified)")
     print("="*60)
 
-    # Paths
-    base_data_path = src_path / 'openad_lib' / 'data'
-    data_path = base_data_path / 'sample_LSTM_timeseries.csv'
+    # -------------------------------------------------------------------------
+    # 1. Load Data Using Library Utilities
+    # -------------------------------------------------------------------------
+    # Use built-in sample data loader - no hardcoded paths needed!
+    data = openad.load_sample_data('lstm_timeseries').dropna()
+    print(f"\nLoaded {len(data)} samples from biogas plant data")
+    
+    features = ['Maize', 'Wholecrop', 'Chicken Litter', 'Lactose', 'Apple Pomace', 'Rice bran']
+    label = 'Total_Biogas'
+    
+    print(f"  Features: {features}")
+    print(f"  Target: {label}")
 
-    # Load data
-    if data_path.exists():
-        data = pd.read_csv(data_path).dropna()
-        print(f"\nLoaded {len(data)} samples from biogas plant data")
-        
-        features = ['Maize', 'Wholecrop', 'Chicken Litter', 'Lactose', 'Apple Pomace', 'Rice bran']
-        label = 'Total_Biogas'
-        
-        print(f"  Features: {features}")
-        print(f"  Target: {label}")
-    else:
-        print(f"Error: Data file not found at {data_path}")
-        return
-
-    # Initialize Model (Needed first to use data prep helper)
-    # We'll determine input_dim dynamically from the prepared data or features
-    # But for now, let's initialize it placeholder or just use class method?
-    # prepare_time_series_data is an instance method, so we instantiate first.
-    
-    # We don't know input_dim yet (it depends on lags).
-    # Let's set it to 1 initially validation will fix it or we re-init?
-    # Actually, proper flow: prepare data -> determine dims -> init model.
-    # But to access helper we need instance.
-    # Let's clean this up by instantiating with dummy dims, then updating?
-    # OR we use the static method logic if exposed?
-    # prepare_time_series_data is an instance method I added.
-    
-    # Let's just init with ANY dim, and update it before building network?
-    # The network is built in __init__.
-    # This is a slight design flaw in my "helper in model" approach if __init__ builds net immediately.
-    # However, for this example, we can calculate expected dim easily: len(features) * n_lags.
-    
+    # -------------------------------------------------------------------------
+    # 2. Initialize Model
+    # -------------------------------------------------------------------------
     n_in = 1  # Previous timestep
-    n_out = 1 # Not used for features, but for target horizon if needed
-    
     input_dim = len(features) * n_in
     print(f"  Input Dimension: {input_dim} (Features * Lags)")
 
@@ -105,7 +76,9 @@ def main():
     print(f"Training samples: {len(X_train)}")
     print(f"Testing samples: {len(X_test)}")
 
-    # Train (Model handles scaling internally!)
+    # -------------------------------------------------------------------------
+    # 3. Train & Evaluate
+    # -------------------------------------------------------------------------
     print("\nTraining LSTM model...")
     lstm.train(
         X_train, 
@@ -116,27 +89,16 @@ def main():
 
     # Evaluate
     print("\nLSTM Evaluation Metrics (Test Set):")
-    # evaluate() handles scaling (inverse transforms internally)
     metrics = lstm.evaluate(X_test, y_test)
     openad.utils.metrics.print_metrics(metrics, title="LSTM Test Performance")
 
     # Predict for plotting
     train_pred = lstm.predict(X_train)
     test_pred = lstm.predict(X_test)
-    
-    # Note: Model scaler is fitted during training.
-    # We need to inverse transform the TRUE y values for plotting comparison,
-    # because 'y_train' passed to plot should ideally be in original scale.
-    # 'y_train' passed to fit IS unscaled (raw).
-    # 'y_train' we have here IS unscaled (raw).
-    # So we can just plot y_train directly!
-    # Wait, predict() returns inverse_transformed (original scale) values by default?
-    # Let's check model implementation:
-    # predict() -> returns self.scaler_y.inverse_transform(predictions). YES.
-    
-    # So we compare raw y vs predict() output. Simple!
 
-    # Plotting using unified system  
+    # -------------------------------------------------------------------------
+    # 4. Plotting using unified system  
+    # -------------------------------------------------------------------------
     print("\nGenerating prediction plot...")
     
     # Combine train and test for visualization
@@ -146,11 +108,7 @@ def main():
     train_idx = np.arange(n_train)
     test_idx = np.arange(n_train, len(y_full))
     
-    # Save plot
-    images_dir = current_dir.parent / 'images'
-    images_dir.mkdir(exist_ok=True)
-    save_path = images_dir / 'lstm_prediction_result.png'
-    
+    # Save plot - auto-save enabled!
     openad.plots.plot_predictions(
         y_true=y_full,
         y_pred=pred_full,
@@ -159,10 +117,9 @@ def main():
         title="LSTM Biogas Prediction",
         xlabel="Sample Index",
         ylabel="Biogas Production",
-        save_path=save_path,
-        show=False
+        save_plot=True,
+        show=True
     )
-    print(f"Plot saved to {save_path}")
 
 if __name__ == "__main__":
     main()

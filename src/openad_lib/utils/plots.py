@@ -80,6 +80,69 @@ COLORS = {
 }
 
 
+def get_images_dir() -> Path:
+    """
+    Get the default images directory for saving plots.
+    
+    Tries to find the project's images folder, or creates one in the current
+    working directory if not found.
+    
+    Returns
+    -------
+    images_dir : Path
+        Path to images directory (created if doesn't exist)
+        
+    Example
+    -------
+    >>> import openad_lib as openad
+    >>> images_dir = openad.plots.get_images_dir()
+    >>> print(images_dir)
+    /path/to/project/images
+    """
+    from openad_lib.config import config
+    
+    # Try to use project root from config
+    try:
+        # data_dir is src/openad_lib/data
+        # .parent -> src/openad_lib
+        # .parent.parent -> src
+        # .parent.parent.parent -> project_root (OpenAD-lib)
+        project_root = config.data_dir.parent.parent.parent
+        images_dir = project_root / 'images'
+    except Exception:
+        # Fallback to current working directory
+        images_dir = Path.cwd() / 'images'
+    
+    # Create directory if it doesn't exist
+    images_dir.mkdir(parents=True, exist_ok=True)
+    return images_dir
+
+
+
+def resolve_save_path(
+    save_path: Optional[Union[str, Path]], 
+    save_plot: bool, 
+    default_filename: str
+) -> Optional[Path]:
+    """
+    Resolve the final save path based on user arguments.
+    
+    Logic:
+    1. If save_path is provided, use it.
+    2. If save_plot is True, use default directory + default_filename.
+    3. Otherwise, return None (don't save).
+    """
+    if save_path:
+        path = Path(save_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+    
+    if save_plot:
+        return get_images_dir() / default_filename
+        
+    return None
+
+
 # ============================================================================
 # CORE PLOTTING FUNCTIONS
 # ============================================================================
@@ -96,55 +159,20 @@ def plot_predictions(
     xlabel: str = "Time",
     ylabel: str = "Value",
     save_path: Optional[Union[str, Path]] = None,
+    save_plot: bool = False,
     show: bool = True
 ) -> plt.Figure:
     """
     Plot predictions vs actual values with optional confidence intervals.
     
-    Automatically handles train/test split visualization and uncertainty.
-    
     Parameters
     ----------
-    y_true : array-like
-        True values
-    y_pred : array-like
-        Predicted values
-    x : array-like, optional
-        X-axis values (default: indices)
-    y_lower : array-like, optional
-        Lower confidence bound
-    y_upper : array-like, optional
-        Upper confidence bound
-    train_indices : array-like, optional
-        Indices for training data
-    test_indices : array-like, optional
-        Indices for test data
-    title : str
-        Plot title
-    xlabel : str
-        X-axis label
-    ylabel : str
-        Y-axis label
+    ...
     save_path : str or Path, optional
-        Path to save figure
-    show : bool
-        Whether to display the plot
-        
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The created figure
-        
-    Examples
-    --------
-    >>> import openad_lib as openad
-    >>> openad.plots.plot_predictions(y_true, y_pred, title="LSTM Results")
-    >>> 
-    >>> # With confidence intervals
-    >>> openad.plots.plot_predictions(
-    ...     y_true, y_pred, y_lower=lower, y_upper=upper,
-    ...     save_path="results.png"
-    ... )
+        Specific path to save figure. Overrides save_plot.
+    save_plot : bool, default=False
+        If True, auto-saves to default images directory using generated filename.
+    ...
     """
     set_openad_style()
     
@@ -193,11 +221,13 @@ def plot_predictions(
     
     plt.tight_layout()
     
-    if save_path:
-        save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Plot saved to {save_path}")
+    # Handle saving
+    default_name = f"{title.lower().replace(' ', '_')}.png"
+    final_path = resolve_save_path(save_path, save_plot, default_name)
+    
+    if final_path:
+        fig.savefig(final_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {final_path}")
     
     if show:
         plt.show()
@@ -214,54 +244,23 @@ def plot_multi_output(
     train_indices: Optional[np.ndarray] = None,
     test_indices: Optional[np.ndarray] = None,
     output_names: Optional[List[str]] = None,
+    title: str = "Multi-Output Prediction",
     xlabel: str = "Time",
     save_path: Optional[Union[str, Path]] = None,
+    save_plot: bool = False,
     show: bool = True
 ) -> plt.Figure:
     """
-    Plot multiple outputs in subplots (like the example figure).
-    
-    Perfect for multi-task models (MTGP, multi-output LSTM, etc.)
+    Plot multiple outputs in subplots.
     
     Parameters
     ----------
-    y_true : np.ndarray
-        True values, shape (n_samples, n_outputs)
-    y_pred : np.ndarray
-        Predicted values, shape (n_samples, n_outputs)
-    x : np.ndarray, optional
-        X-axis values
-    y_lower : np.ndarray, optional
-        Lower confidence bounds, shape (n_samples, n_outputs)
-    y_upper : np.ndarray, optional
-        Upper confidence bounds, shape (n_samples, n_outputs)
-    train_indices : np.ndarray, optional
-        Indices for training data points
-    test_indices : np.ndarray, optional
-        Indices for test data points
-    output_names : list of str, optional
-        Names for each output
-    xlabel : str
-        X-axis label (only shown on bottom subplot)
+    ...
     save_path : str or Path, optional
-        Path to save figure
-    show : bool
-        Whether to display the plot
-        
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The created figure
-        
-    Examples
-    --------
-    >>> import openad_lib as openad
-    >>> # Multi-task GP results
-    >>> openad.plots.plot_multi_output(
-    ...     Y_test, predictions, 
-    ...     output_names=['SCODout', 'VFAout', 'Biogas'],
-    ...     y_lower=lower, y_upper=upper
-    ... )
+        Specific path to save figure. Overrides save_plot.
+    save_plot : bool, default=False
+        If True, auto-saves to default images directory using generated filename.
+    ...
     """
     set_openad_style()
     
@@ -276,7 +275,7 @@ def plot_multi_output(
     if x is None:
         x = np.arange(n_samples)
     
-    # **FIX: Sort all data by x-axis for smooth lines**
+    # Sort all data by x-axis for smooth lines
     sort_idx = np.argsort(x)
     x = x[sort_idx]
     y_true = y_true[sort_idx]
@@ -341,13 +340,17 @@ def plot_multi_output(
         ax.legend(loc='best', framealpha=0.9)
         ax.grid(True, alpha=0.3)
     
-    plt.tight_layout()
+    # Add overall title
+    fig.suptitle(title, fontsize=14, fontweight='bold', y=0.98)
+    plt.tight_layout(rect=[0, 0, 1, 0.96]) # Adjust layout to make room for suptitle
     
-    if save_path:
-        save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Plot saved to {save_path}")
+    # Handle saving
+    default_name = f"{title.lower().replace(' ', '_')}.png"
+    final_path = resolve_save_path(save_path, save_plot, default_name)
+    
+    if final_path:
+        fig.savefig(final_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {final_path}")
     
     if show:
         plt.show()
@@ -360,6 +363,7 @@ def plot_training_curves(
     val_losses: Optional[List[float]] = None,
     title: str = "Training History",
     save_path: Optional[Union[str, Path]] = None,
+    save_plot: bool = False,
     show: bool = True
 ) -> plt.Figure:
     """
@@ -367,21 +371,9 @@ def plot_training_curves(
     
     Parameters
     ----------
-    train_losses : list of float
-        Training losses per epoch
-    val_losses : list of float, optional
-        Validation losses per epoch
-    title : str
-        Plot title
-    save_path : str or Path, optional
-        Path to save figure
-    show : bool
-        Whether to display the plot
-        
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The created figure
+    ...
+    save_plot : bool, default=False
+    ...
     """
     set_openad_style()
     
@@ -403,11 +395,13 @@ def plot_training_curves(
     
     plt.tight_layout()
     
-    if save_path:
-        save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Plot saved to {save_path}")
+    # Handle saving
+    default_name = f"{title.lower().replace(' ', '_')}.png"
+    final_path = resolve_save_path(save_path, save_plot, default_name)
+    
+    if final_path:
+        fig.savefig(final_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {final_path}")
     
     if show:
         plt.show()
@@ -420,6 +414,7 @@ def plot_residuals(
     y_pred: np.ndarray,
     title: str = "Residual Plot",
     save_path: Optional[Union[str, Path]] = None,
+    save_plot: bool = False,
     show: bool = True
 ) -> plt.Figure:
     """
@@ -427,21 +422,9 @@ def plot_residuals(
     
     Parameters
     ----------
-    y_true : array-like
-        True values
-    y_pred : array-like
-        Predicted values
-    title : str
-        Plot title
-    save_path : str or Path, optional
-        Path to save figure
-    show : bool
-        Whether to display the plot
-        
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        The created figure
+    ...
+    save_plot : bool, default=False
+    ...
     """
     set_openad_style()
     
@@ -467,11 +450,13 @@ def plot_residuals(
     fig.suptitle(title, fontsize=14, fontweight='bold', y=1.02)
     plt.tight_layout()
     
-    if save_path:
-        save_path = Path(save_path)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"Plot saved to {save_path}")
+    # Handle saving
+    default_name = f"{title.lower().replace(' ', '_')}.png"
+    final_path = resolve_save_path(save_path, save_plot, default_name)
+    
+    if final_path:
+        fig.savefig(final_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {final_path}")
     
     if show:
         plt.show()
@@ -522,6 +507,8 @@ def quick_plot(
 
 __all__ = [
     'set_openad_style',
+    'get_images_dir',
+    'resolve_save_path',
     'plot_predictions',
     'plot_multi_output',
     'plot_training_curves',

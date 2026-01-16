@@ -4,38 +4,45 @@ Example: AM2 Model Calibration
 This script demonstrates how to calibrate the AM2 model parameters using Optuna.
 It optimizes the kinetic parameters to fit the provided experimental data
 and plots the comparison between initial and calibrated models.
+
+New in v0.2.0: Uses load_sample_data() for simplified data loading.
 """
 
-import os
+import sys
+from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
+
+# Add src to path for development
+current_dir = Path(__file__).parent.resolve()
+src_path = current_dir.parent / 'src'
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
 try:
     import optuna
+    import openad_lib as openad
     from openad_lib.optimisation import AM2Calibrator
     from openad_lib.models.mechanistic import AM2Model
 except ImportError as e:
     print(f"Error importing modules: {e}")
     print("Please ensure openad_lib[optimization] is installed.")
-    exit(1)
-
-# Get the data directory path
-DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'src', 'openad_lib', 'data')
-data_path = os.path.join(DATA_DIR, 'sample_AM2_Lab_data.csv')
+    sys.exit(1)
 
 print("=" * 60)
 print("AM2 Model Calibration")
 print("=" * 60)
 
-if not os.path.exists(data_path):
-    print(f"Error: Data file not found in {DATA_DIR}")
-    exit(1)
+# -------------------------------------------------------------------------
+# 1. Load Data Using Library Utilities
+# -------------------------------------------------------------------------
+# Use built-in sample data loader - no hardcoded paths needed!
+am2_data = openad.load_sample_data('am2_lab')
+print(f"\nLoaded {len(am2_data)} samples from AM2 lab data")
 
 # Initialize model and load data
-print(f"Loading data from: {data_path}")
 model = AM2Model()
-model.load_data(data_path)
+model.load_data(am2_data)
 
 # Run initial simulation
 print("\nRunning initial simulation...")
@@ -122,13 +129,10 @@ axes[-1].set_xlabel('Time (days)', fontsize=14, fontweight='bold')
 plt.tight_layout()
 
 # Save to images folder
-base_dir = os.path.dirname(__file__)
-project_root = os.path.join(base_dir, '..')
-images_dir = os.path.join(project_root, 'images')
-if not os.path.exists(images_dir):
-    os.makedirs(images_dir)
+images_dir = current_dir.parent / 'images'
+images_dir.mkdir(exist_ok=True)
 
-save_path = os.path.join(images_dir, 'am2_calibration.png')
+save_path = images_dir / 'am2_calibration.png'
 plt.savefig(save_path, dpi=300, bbox_inches='tight')
 print(f"Plot saved to {save_path}")
 

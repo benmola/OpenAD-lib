@@ -659,6 +659,40 @@ class AM2Model(MechanisticModel):
         # Run simulation
         AM2 = self._simulate()
         
+        # Create results DataFrame (needed for evaluate and consistency)
+        self.results = pd.DataFrame({
+            'time': self.data['time'],
+            'S1': AM2[:, 0],
+            'X1': AM2[:, 1],
+            'S2': AM2[:, 2],
+            'X2': AM2[:, 3],
+            'Q': AM2[:, 4]
+        })
+        
+        # Add input data to results
+        self.results['D'] = self.data['D']
+        self.results['S1in'] = self.data['S1in']
+        self.results['pH'] = self.data['pH']
+        
+        # Add measured data if available (vital for evaluate)
+        if 'S1out' in self.data.columns:
+            self.results['S1_measured'] = self.data['S1out']
+        if 'S2out' in self.data.columns:
+            self.results['S2_measured'] = self.data['S2out']
+        if 'Q' in self.data.columns:
+            self.results['Q_measured'] = self.data['Q']
+            
+        # Calculate derived variables (growth rates)
+        p = self.params
+        # MU1
+        self.results['MU1'] = p.m1 * (AM2[:, 0] / (AM2[:, 0] + p.K1))
+        # MU2
+        S2_vals = AM2[:, 2]
+        pH_vals = self.data['pH'].values
+        MU2_base = p.m2 * (S2_vals / ((S2_vals * S2_vals) / p.Ki + S2_vals + p.K2))
+        pH_factor = np.exp(-4 * ((pH_vals - p.pHH) / (p.pHH - p.pHL)) ** 2)
+        self.results['MU2'] = MU2_base - (MU2_base * pH_factor)
+        
         # Return as dictionary
         return {
             'time': self.data['time'].values,
