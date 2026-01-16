@@ -11,6 +11,7 @@ OpenAD-lib is a unified Python library for anaerobic digestion (AD) process mode
 
 - **Mechanistic Models**: Complete ADM1 (38 state variables) and simplified AM2 (4 state variables)
 - **ML Surrogate Models**: LSTM and Multi-Task Gaussian Process with uncertainty quantification
+- **Unified Plotting System**: Standardized, publication-ready visualization across all modules
 - **Model Calibration**: Optuna-based parameter optimization for AM2 model
 - **Model Predictive Control**: do-mpc based MPC for biogas optimization and VFA tracking
 - **Feedstock Library**: Built-in database of 12 common AD substrates
@@ -46,11 +47,11 @@ pip install -e .
 > **New in v0.2.0**: Simplified API! Import everything from the top level.
 
 ```python
-import openad_lib as oad
+import openad_lib as openad
 
 # Access models, calibrators, and utilities directly
-model = oad.ADM1Model()
-calibrator = oad.ADM1Calibrator(model, data, influent)
+model = openad.AM2Model()
+calibrator = openad.ADM1Calibrator(model, data, influent)
 dataset = oad.BiogasDataset.from_csv('biogas_data.csv')
 ```
 
@@ -84,15 +85,25 @@ import openad_lib as oad
 # Initialize model with default parameters
 model = oad.AM2Model()
 
-# Load experimental data
-model.load_data("path/to/lab_data.csv")
+# Load experimental data (using built-in loader for example)
+data = oad.load_sample_data('am2_lab')
+model.load_data_from_dataframe(data)
 
-# Run simulation and evaluate
+# Run simulation
 results = model.simulate()
+
+# Evaluate
 metrics = model.evaluate()
-from openad_lib.utils.metrics import print_metrics
-print_metrics(metrics)
-model.plot_results()
+oad.utils.metrics.print_metrics(metrics)
+
+# Plot using unified system
+oad.plots.plot_multi_output(
+    y_true=model.data[['SCODout', 'VFAout', 'Biogas']].values,
+    y_pred=results[['S1', 'S2', 'Q']].values,
+    output_names=['SCOD', 'VFA', 'Biogas'],
+    save_plot=True,
+    show=True
+)
 ```
 
 ### 3. AM2 Parameter Calibration
@@ -100,28 +111,31 @@ model.plot_results()
 ```python
 import openad_lib as oad
 
-# Initialize model
+# Initialize model and load data
 model = oad.AM2Model()
-model.load_data("path/to/lab_data.csv")
+data = oad.load_sample_data('am2_lab')
+model.load_data_from_dataframe(data)
 
 # Configure calibrator
 calibrator = oad.AM2Calibrator(model)
 
-# Define custom parameter bounds (optional)
-custom_bounds = {
-    'm1': (0.05, 0.5),    # Growth rate bounds
-    'K1': (5.0, 30.0),    # Half-saturation bounds
-    'm2': (0.1, 1.0),
-    'Ki': (10.0, 50.0),
-    'K2': (20.0, 80.0)
-}
-
-# Run optimization with custom bounds
+# Run optimization
 best_params = calibrator.calibrate(
     params_to_tune=['m1', 'K1', 'm2', 'Ki', 'K2'],
-    param_bounds=custom_bounds,  # Optional: use default bounds if not specified
-    n_trials=100,
+    n_trials=50,
     weights={'S1': 0.5, 'S2': 1.0, 'Q': 1.0}
+)
+
+# Visualize Comparison
+initial_results = model.simulate()
+model.update_parameters(best_params)
+final_results = model.simulate()
+
+oad.plots.plot_calibration_comparison(
+    initial_results,
+    final_results,
+    save_plot=True,
+    show=True
 )
 ```
 
