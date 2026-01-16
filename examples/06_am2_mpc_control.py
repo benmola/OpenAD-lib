@@ -15,20 +15,13 @@ Scenario:
 import sys
 import os
 import numpy as np
-import matplotlib.pyplot as plt
+
 import pandas as pd
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-try:
-    from openad_lib.models.mechanistic import AM2Model, AM2Parameters
-    from openad_lib.control import AM2MPC
-except ImportError as e:
-    print(f"Error importing openad_lib: {e}")
-    print("Please install requirements: pip install -r requirements.txt")
-    print("Ensure do-mpc and casadi are installed.")
-    sys.exit(1)
+import openad_lib as openad
 
 def run_control_example():
     print("=" * 60)
@@ -36,12 +29,12 @@ def run_control_example():
     print("=" * 60)
     
     # 1. Setup Parameters
-    params = AM2Parameters() # Default parameters
+    params = openad.AM2Parameters() # Default parameters
     
     # 2. Initialize Controller
     print("\nInitializing MPC controller...")
     # maximize_biogas mode: minimizing -Q
-    controller = AM2MPC(params)
+    controller = openad.AM2MPC(params)
     
     # Configure: 1 day steps, 10 day horizon
     # Slower sampling for biological processes
@@ -122,52 +115,16 @@ def run_control_example():
         # Advance time
         t_current += sampling_time
         
-        print(f"Day {k}: D={u_opt:.3f}, S1in={S1in_k:.1f}, Q={Q_curr:.3f}")
-        
     # 5. Plot Results
     print("\nPlotting results...")
-    # Plotting
-    plt.style.use('bmh')
-    fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
     
-    # Plot 1: VFA (S1)
-    ax = axes[0]
-    ax.plot(history['time'], history['S1'], 'b-', linewidth=2, label='VFA (S1)')
-    ax.set_ylabel('Concentration [g COD/L]', fontsize=14, fontweight='bold')
-    ax.set_title('VFA Concentration', fontsize=16, pad=20)
-    ax.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
-    ax.grid(True, linestyle='--', alpha=0.7)
-    
-    # Plot 2: Biogas (Q)
-    ax = axes[1]
-    ax.plot(history['time'], history['Q'], 'g-', linewidth=2, label='Biogas Production')
-    ax.set_ylabel('Production Rate [L/d]', fontsize=14, fontweight='bold')
-    ax.set_title('Biogas Production (Objective)', fontsize=16, pad=20)
-    ax.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
-    ax.grid(True, linestyle='--', alpha=0.7)
-    
-    # Plot 3: Control Input (D)
-    ax = axes[2]
-    ax.step(history['time'], history['D'], 'r-', where='post', label='Dilution Rate (D)')
-    ax.set_ylabel('Rate [1/d]', fontsize=14, fontweight='bold')
-    ax.set_xlabel('Time [days]', fontsize=14, fontweight='bold')
-    ax.set_title('Control Input', fontsize=16, pad=20)
-    ax.set_ylim(-0.05, 0.55) # Show constraints
-    ax.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
-    ax.grid(True, linestyle='--', alpha=0.7)
-    
-    plt.tight_layout()
-    
-    # Save to images folder
-    base_dir = os.path.dirname(__file__)
-    project_root = os.path.join(base_dir, '..')
-    images_dir = os.path.join(project_root, 'images')
-    if not os.path.exists(images_dir):
-        os.makedirs(images_dir)
-    
-    save_path = os.path.join(images_dir, 'mpc_results.png')
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"\nDone! Results saved to {save_path}")
+    openad.plots.plot_mpc_results(
+        history,
+        d_max=0.5,
+        title="MPC Maximizing Biogas",
+        save_plot=True,
+        show=True
+    )
 
 if __name__ == "__main__":
     run_control_example()

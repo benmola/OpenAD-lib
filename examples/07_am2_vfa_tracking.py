@@ -14,17 +14,12 @@ Objective:
 import sys
 import os
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 # Add src to path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-try:
-    from openad_lib.models.mechanistic import AM2Parameters
-    from openad_lib.control import AM2MPC
-except ImportError as e:
-    print(f"Error importing openad_lib: {e}")
-    sys.exit(1)
+import openad_lib as openad
 
 def run_vfa_tracking_example():
     print("=" * 60)
@@ -32,11 +27,11 @@ def run_vfa_tracking_example():
     print("=" * 60)
     
     # 1. Setup Parameters
-    params = AM2Parameters()
+    params = openad.AM2Parameters()
     
     # 2. Initialize Controller
     print("\nInitializing MPC controller...")
-    controller = AM2MPC(params)
+    controller = openad.AM2MPC(params)
     
     # Configuration
     sampling_time = 1.0  # days
@@ -116,51 +111,15 @@ def run_vfa_tracking_example():
         
     # 5. Plot Results
     print("\nPlotting results...")
-    # Plotting
-    plt.style.use('bmh')
-    fig, axes = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
     
-    # Plot 1: Tracking Performance (S2)
-    ax = axes[0]
-    ax.plot(history['time'], history['S2'], 'b-', linewidth=2, label='VFA (S2)')
-    ax.plot(history['time'], history['Setpoint'], 'k--', linewidth=2, label='Setpoint')
-    ax.set_ylabel('Concentration [g/L]')
-    ax.set_title(f'VFA Tracking Performance')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    
-    # Plot 2: Biogas Production
-    ax = axes[1]
-    ax.plot(history['time'], history['Q'], 'g-', label='Biogas Production')
-    ax.set_ylabel('Rate [L/d]')
-    ax.set_title('Biogas Production (Co-benefit)')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    
-    # Plot 3: Control Input with Constraints
-    ax = axes[2]
-    ax.step(history['time'], history['D'], 'r-', where='post', label='Dilution Rate (D)')
-    ax.axhline(y=d_max, color='r', linestyle=':', label='Max Constraint')
-    ax.axhline(y=0, color='r', linestyle=':', label='Min Constraint')
-    ax.set_ylabel('Rate [1/d]')
-    ax.set_xlabel('Time [days]')
-    ax.set_title('Control Input & Constraints')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    ax.set_ylim(-0.05, d_max + 0.1)
-    
-    plt.tight_layout()
-    
-    # Save to images folder
-    base_dir = os.path.dirname(__file__)
-    project_root = os.path.join(base_dir, '..')
-    images_dir = os.path.join(project_root, 'images')
-    if not os.path.exists(images_dir):
-        os.makedirs(images_dir)
-    
-    save_path = os.path.join(images_dir, 'vfa_tracking_results.png')
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f"\nDone! Results saved to {save_path}")
+    openad.plots.plot_mpc_results(
+        history,
+        d_max=d_max,
+        s2_setpoint=s2_setpoint,
+        title="VFA Tracking Performance",
+        save_plot=True,
+        show=True
+    )
 
 if __name__ == "__main__":
     run_vfa_tracking_example()

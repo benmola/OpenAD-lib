@@ -42,6 +42,10 @@ def __getattr__(name):
         from openad_lib.models.mechanistic import AM2Model
         return AM2Model
     
+    elif name == "AM2Parameters":
+        from openad_lib.models.mechanistic import AM2Parameters
+        return AM2Parameters
+    
     # ML models
     elif name == "LSTMModel":
         from openad_lib.models.ml import LSTMModel
@@ -57,6 +61,11 @@ def __getattr__(name):
     elif name == "AM2Calibrator":
         from openad_lib.optimisation import AM2Calibrator
         return AM2Calibrator
+
+    # Control
+    elif name == "AM2MPC":
+        from openad_lib.control import AM2MPC
+        return AM2MPC
     
     # Preprocessing
     elif name == "acod":
@@ -80,6 +89,8 @@ def __getattr__(name):
         return importlib.import_module("openad_lib.models.mechanistic")
     elif name == "ml":
         return importlib.import_module("openad_lib.models.ml")
+    elif name == "control":
+        return importlib.import_module("openad_lib.control")
     elif name == "data":
         return importlib.import_module("openad_lib.data")
     elif name == "utils":
@@ -102,12 +113,16 @@ __all__ = [
     # Models
     "ADM1Model",
     "AM2Model",
+    "AM2Parameters",
     "LSTMModel",
     "MultitaskGP",
     
     # Calibration
     "ADM1Calibrator",
     "AM2Calibrator",
+
+    # Control
+    "AM2MPC",
     
     # Preprocessing
     "acod",
@@ -120,6 +135,7 @@ __all__ = [
     # Submodules
     "mechanistic",
     "ml",
+    "control",
     "data",
     "utils",
     "preprocessing",

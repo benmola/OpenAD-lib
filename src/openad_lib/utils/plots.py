@@ -591,6 +591,105 @@ def quick_plot(
         return plot_multi_output(y_true, y_pred, **kwargs)
 
 
+
+def plot_mpc_results(
+    history: Dict[str, List[float]],
+    d_max: Optional[float] = None,
+    s2_setpoint: Optional[float] = None,
+    title: str = "MPC Control Results",
+    save_path: Optional[Union[str, Path]] = None,
+    save_plot: bool = False,
+    show: bool = True
+) -> plt.Figure:
+    """
+    Plot MPC control results (States, Biogas, Control Input).
+
+    Parameters
+    ----------
+    history : Dict
+        Dictionary containing 'time', 'S1', 'S2', 'Q', 'D' lists.
+        Can optionally contain 'Setpoint'.
+    d_max : float, optional
+        Maximum dilution rate constraint to display.
+    s2_setpoint : float, optional
+        S2 setpoint to display if not in history.
+    title : str
+        Plot title.
+    save_path : str or Path, optional
+        Path to save the plot.
+    save_plot : bool
+        Whether to auto-save.
+    show : bool
+        Whether to show the plot.
+    """
+    set_openad_style()
+    
+    fig, axes = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
+    
+    # Determine what to plot in the first subplot (Tracking vs State)
+    ax = axes[0]
+    if 'Setpoint' in history:
+        # VFA Tracking Case
+        ax.plot(history['time'], history['S2'], 'b-', linewidth=2, label='VFA (S2)')
+        ax.plot(history['time'], history['Setpoint'], 'k--', linewidth=2, label='Setpoint')
+        ax.set_ylabel('Concentration [g/L]', fontsize=12, fontweight='bold')
+        ax.set_title('VFA Tracking Performance', fontsize=14)
+    elif s2_setpoint is not None:
+         # VFA Tracking Case (implicit setpoint)
+        ax.plot(history['time'], history['S2'], 'b-', linewidth=2, label='VFA (S2)')
+        ax.axhline(y=s2_setpoint, color='k', linestyle='--', linewidth=2, label='Setpoint')
+        ax.set_ylabel('Concentration [g/L]', fontsize=12, fontweight='bold')
+        ax.set_title('VFA Tracking Performance', fontsize=14)
+    else:
+        # Standard Control Case (Show S1/VFA)
+        ax.plot(history['time'], history['S1'], 'b-', linewidth=2, label='VFA (S1)')
+        ax.set_ylabel('Concentration [g COD/L]', fontsize=12, fontweight='bold')
+        ax.set_title('VFA Concentration', fontsize=14)
+    
+    ax.legend(fontsize=10, frameon=True)
+    ax.grid(True, alpha=0.3)
+    
+    # Plot 2: Biogas
+    ax = axes[1]
+    ax.plot(history['time'], history['Q'], 'g-', linewidth=2, label='Biogas Production')
+    ax.set_ylabel('Rate [L/d]', fontsize=12, fontweight='bold')
+    ax.set_title('Biogas Production', fontsize=14)
+    ax.legend(fontsize=10, frameon=True)
+    ax.grid(True, alpha=0.3)
+    
+    # Plot 3: Control Input
+    ax = axes[2]
+    ax.step(history['time'], history['D'], 'r-', where='post', label='Dilution Rate (D)')
+    
+    if d_max is not None:
+        ax.axhline(y=d_max, color='r', linestyle=':', label='Max Constraint')
+        ax.axhline(y=0, color='r', linestyle=':', label='Min Constraint')
+        ax.set_ylim(-0.05, d_max + 0.1)
+    else:
+        ax.set_ylim(bottom=-0.05)
+        
+    ax.set_ylabel('Rate [1/d]', fontsize=12, fontweight='bold')
+    ax.set_xlabel('Time [days]', fontsize=12, fontweight='bold')
+    ax.set_title('Control Input & Constraints', fontsize=14)
+    ax.legend(fontsize=10, frameon=True)
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    
+    # Save
+    default_name = f"{title.lower().replace(' ', '_')}.png"
+    final_path = resolve_save_path(save_path, save_plot, default_name)
+    
+    if final_path:
+        plt.savefig(final_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {final_path}")
+        
+    if show:
+        plt.show()
+        
+    return fig
+
+
 __all__ = [
     'set_openad_style',
     'get_images_dir',
@@ -601,5 +700,6 @@ __all__ = [
     'plot_residuals',
     'plot_calibration_comparison',
     'quick_plot',
+    'plot_mpc_results',
     'COLORS',
 ]
