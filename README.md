@@ -26,20 +26,8 @@ OpenAD-lib is a unified Python library for anaerobic digestion (AD) process mode
 git clone https://github.com/benmola/OpenAD-lib.git
 cd OpenAD-lib
 
-# Install in development mode
+# Install all dependencies (including ML, optimization, control)
 pip install -e .
-
-# For ML models (LSTM, Gaussian Process)
-pip install -e ".[ml]"
-
-# For optimization features (Optuna)
-pip install -e ".[optimization]"
-
-# For MPC control (do-mpc)
-pip install -e ".[control]"
-
-# For all features
-pip install -e ".[full]"
 ```
 
 ### Using conda
@@ -50,7 +38,7 @@ conda create -n openad python=3.10
 conda activate openad
 
 # Install dependencies
-pip install -e ".[full]"
+pip install -e .
 ```
 
 ## 🏃 Quick Start
