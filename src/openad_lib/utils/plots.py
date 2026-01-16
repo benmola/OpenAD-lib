@@ -463,6 +463,92 @@ def plot_residuals(
     
     return fig
 
+def plot_calibration_comparison(
+    initial_results: pd.DataFrame,
+    final_results: pd.DataFrame,
+    variables: List[str] = ['S1', 'S2', 'Q'],
+    labels: Optional[List[str]] = None,
+    title: str = "Calibration Comparison",
+    save_path: Optional[Union[str, Path]] = None,
+    save_plot: bool = False,
+    show: bool = True
+) -> plt.Figure:
+    """
+    Plot calibration comparison results.
+
+    Parameters
+    ----------
+    initial_results : pd.DataFrame
+        Results from the initial simulation (before calibration).
+    final_results : pd.DataFrame
+        Results from the final simulation (after calibration), including measured data if available.
+    variables : List[str], default=['S1', 'S2', 'Q']
+        List of variable names to plot.
+    labels : List[str], optional
+        List of display labels for the variables. If None, uses variable names.
+    title : str, default="Calibration Comparison"
+        Overall title for the plot.
+    save_path : str or Path, optional
+        Specific path to save figure.
+    save_plot : bool, default=False
+        If True, auto-saves to default images directory.
+    show : bool, default=True
+        Whether to show the plot.
+    """
+    # Use BMH style as requested, but ensure other OpenAD defaults are respected where possible
+    plt.style.use('bmh')
+    
+    if labels is None:
+        labels = variables
+    
+    n_vars = len(variables)
+    fig, axes = plt.subplots(n_vars, 1, figsize=(12, 10), sharex=True)
+    
+    if n_vars == 1:
+        axes = [axes]
+        
+    time = final_results['time']
+    
+    for i, var in enumerate(variables):
+        ax = axes[i]
+        
+        # Measured Data
+        if f'{var}_measured' in final_results.columns:
+            valid = ~final_results[f'{var}_measured'].isna()
+            ax.plot(time[valid], final_results[f'{var}_measured'][valid], 
+                    'o', color='#2E86C1', markersize=6, label='Measured', alpha=0.7)
+            
+        # Initial Model
+        if var in initial_results.columns:
+             ax.plot(time, initial_results[var], '--', color='gray', linewidth=2, 
+                    label='Initial Model', alpha=0.7)
+        
+        # Calibrated Model
+        if var in final_results.columns:
+            ax.plot(time, final_results[var], '-', color='#27AE60', linewidth=2, 
+                    label='Calibrated Model')
+        
+        ax.set_ylabel(labels[i], fontsize=14, fontweight='bold')
+        ax.set_title(f'{labels[i]} Calibration Comparison', fontsize=16, pad=20)
+        ax.legend(fontsize=12, frameon=True, facecolor='white', edgecolor='gray')
+        ax.grid(True, linestyle='--', alpha=0.7)
+    
+    axes[-1].set_xlabel('Time (days)', fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    
+    # Handle saving
+    default_name = f"{title.lower().replace(' ', '_')}.png"
+    final_path = resolve_save_path(save_path, save_plot, default_name)
+    
+    if final_path:
+        fig.savefig(final_path, dpi=300, bbox_inches='tight')
+        print(f"Plot saved to {final_path}")
+    
+    if show:
+        plt.show()
+    
+    return fig
+
 
 # ============================================================================
 # CONVENIENCE FUNCTIONS
@@ -513,6 +599,7 @@ __all__ = [
     'plot_multi_output',
     'plot_training_curves',
     'plot_residuals',
+    'plot_calibration_comparison',
     'quick_plot',
     'COLORS',
 ]

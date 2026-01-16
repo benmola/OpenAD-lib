@@ -24,7 +24,7 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 import openad_lib as openad
-from openad_lib.utils.metrics import print_metrics
+
 
 def run_simulation():
     print("=" * 60)
@@ -96,7 +96,7 @@ def run_simulation():
     # Evaluate if measured data exists (it does in this sample)
     print("\nEvaluation Metrics:")
     metrics = model.evaluate()
-    print_metrics(metrics, title="AM2 Model Performance")
+    openad.utils.metrics.print_metrics(metrics, title="AM2 Model Performance")
     
 
 
@@ -110,7 +110,7 @@ def run_simulation():
         title="AM2 Model Simulation",
         xlabel='Time (days)',
         save_plot=True,
-        show=False
+        show=True
     )
 
 if __name__ == "__main__":

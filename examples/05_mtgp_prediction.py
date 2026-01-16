@@ -126,7 +126,7 @@ def main():
         title="Multi-Task GP Prediction",
         xlabel="Time",
         save_plot=True,
-        show=False
+        show=True
     )
     
     print("\nExample complete!")
