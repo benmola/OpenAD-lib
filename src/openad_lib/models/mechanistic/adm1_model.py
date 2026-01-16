@@ -134,8 +134,8 @@ class ADM1Model:
                 y0=x0, 
                 method='BDF', 
                 args=[yin, self.V_liq, self.V_gas, self.Param], 
-                rtol=1e-9, 
-                atol=1e-9
+                rtol=1e-5, 
+                atol=1e-6
             )
             
             # Update state for next step
