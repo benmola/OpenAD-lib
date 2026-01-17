@@ -12,7 +12,7 @@ OpenAD-lib is a unified Python library for anaerobic digestion (AD) process mode
 - **Mechanistic Models**: Complete ADM1 (38 state variables) and simplified AM2 (4 state variables)
 - **ML Surrogate Models**: LSTM and Multi-Task Gaussian Process with uncertainty quantification
 - **Unified Plotting System**: Standardized, publication-ready visualization across all modules
-- **Model Calibration**: Optuna-based parameter optimization for AM2 model
+- **Model Calibration**: Optuna-based parameter optimization for AM2 model and ADM1 Model
 - **Model Predictive Control**: do-mpc based MPC for biogas optimization and VFA tracking
 - **Feedstock Library**: Built-in database of 12 common AD substrates
 - **ACoD Preprocessing**: Automatic influent characterization from feedstock ratios
