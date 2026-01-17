@@ -51,8 +51,8 @@ import openad_lib as openad
 
 # Access models, calibrators, and utilities directly
 model = openad.AM2Model()
-calibrator = openad.ADM1Calibrator(model, data, influent)
-dataset = openad.BiogasDataset.from_csv('biogas_data.csv')
+data = openad.load_sample_data('biogas')
+dataset = openad.BiogasDataset(data)
 ```
 
 ### 1. ADM1 Simulation with ACoD Preprocessing
@@ -74,7 +74,7 @@ states = results['results']
 # Evaluate against measurements
 measured_data = openad.load_sample_data('biogas')
 metrics = model.evaluate(measured_data['Biogas'].values, biogas['q_gas'].values)
-oad.utils.metrics.print_metrics(metrics)
+openad.utils.metrics.print_metrics(metrics)
 ```
 
 ### 2. AM2 Simplified Model
@@ -87,7 +87,13 @@ model = openad.AM2Model()
 
 # Load experimental data (using built-in loader for example)
 data = openad.load_sample_data('am2_lab')
-model.load_data_from_dataframe(data)
+model.load_data_from_dataframe(
+    data,
+    S1in_col='SCODin',
+    S1out_col='SCODout',
+    S2out_col='VFAout',
+    Q_col='Biogas'
+)
 
 # Run simulation
 results = model.simulate()
@@ -114,7 +120,13 @@ import openad_lib as openad
 # Initialize model and load data
 model = openad.AM2Model()
 data = openad.load_sample_data('am2_lab')
-model.load_data_from_dataframe(data)
+model.load_data_from_dataframe(
+    data,
+    S1in_col='SCODin',
+    S1out_col='SCODout',
+    S2out_col='VFAout',
+    Q_col='Biogas'
+)
 
 # Configure calibrator
 calibrator = openad.AM2Calibrator(model)
@@ -127,11 +139,11 @@ best_params = calibrator.calibrate(
 )
 
 # Visualize Comparison
-initial_results = model.simulate()
-model.update_parameters(best_params)
-final_results = model.simulate()
+initial_results = model.run(verbose=False)
+model.update_params(best_params)
+final_results = model.run(verbose=False)
 
-oad.plots.plot_calibration_comparison(
+openad.plots.plot_calibration_comparison(
     initial_results,
     final_results,
     save_plot=True,
@@ -161,7 +173,6 @@ config_dict = openad.config.to_dict()
 
 ```python
 import openad_lib as openad
-from openad_lib.data import validate_influent_data, validate_feedstock_data
 
 # Load sample datasets
 biogas_data = openad.load_sample_data('biogas')
@@ -171,10 +182,9 @@ feedstock_data = openad.load_sample_data('feedstock')
 biogas_ds = openad.BiogasDataset(biogas_data)
 train_ds, test_ds = biogas_ds.split(train_fraction=0.8)
 
-# Validate data
-results = validate_influent_data(influent_df, model_type='adm1')
-if all(results.values()):
-    print("Data is valid!")
+print(f"Total samples: {len(biogas_ds)}")
+print(f"Training samples: {len(train_ds)}")
+print(f"Test samples: {len(test_ds)}")
 ```
 
 ### 6. LSTM Surrogate Model
@@ -209,6 +219,24 @@ print(f"Test RMSE: {metrics['rmse']:.2f}, R²: {metrics['r2']:.3f}")
 
 ```python
 import openad_lib as openad
+import numpy as np
+
+# Load sample multi-output data
+data = openad.load_sample_data('mtgp')
+
+# Define inputs and outputs
+input_cols = ['time', 'D', 'SCODin', 'OLR', 'pH']
+output_cols = ['SCODout', 'VFAout', 'Biogas']
+
+X = data[input_cols].values
+Y = data[output_cols].values
+
+# Split data
+train_indices = np.arange(1, len(X), 2)  # Alternating indices
+test_indices = np.arange(0, len(X), 2)
+
+X_train, Y_train = X[train_indices], Y[train_indices]
+X_test, Y_test = X[test_indices], Y[test_indices]
 
 # Predict multiple outputs (SCOD, VFA, Biogas) with uncertainty
 mtgp = openad.MultitaskGP(num_tasks=3, num_latents=3, log_transform=True)

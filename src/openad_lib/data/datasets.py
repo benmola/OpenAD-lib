@@ -59,6 +59,29 @@ class BiogasDataset:
         """Return all targets as numpy array."""
         return self.data[self.target_column].values.astype(np.float32)
 
+    def split(self, train_fraction: float = 0.8) -> Tuple['BiogasDataset', 'BiogasDataset']:
+        """
+        Split dataset into train and test sets.
+        
+        Parameters
+        ----------
+        train_fraction : float, default=0.8
+            Fraction of data to use for training
+            
+        Returns
+        -------
+        train_ds, test_ds : (BiogasDataset, BiogasDataset)
+            Train and test dataset objects
+        """
+        split_idx = int(len(self.data) * train_fraction)
+        train_data = self.data.iloc[:split_idx].copy()
+        test_data = self.data.iloc[split_idx:].copy()
+        
+        train_ds = BiogasDataset(train_data, self.target_column, self.feature_columns)
+        test_ds = BiogasDataset(test_data, self.target_column, self.feature_columns)
+        
+        return train_ds, test_ds
+
 
 class FeedstockDataset:
     """
