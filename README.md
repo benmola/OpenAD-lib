@@ -52,19 +52,19 @@ import openad_lib as openad
 # Access models, calibrators, and utilities directly
 model = openad.AM2Model()
 calibrator = openad.ADM1Calibrator(model, data, influent)
-dataset = oad.BiogasDataset.from_csv('biogas_data.csv')
+dataset = openad.BiogasDataset.from_csv('biogas_data.csv')
 ```
 
 ### 1. ADM1 Simulation with ACoD Preprocessing
 
 ```python
-import openad_lib as oad
+import openad_lib as openad
 
 # Generate influent data from feedstock ratios
-influent_df = oad.acod.generate_influent_data("path/to/feed_ratios.csv")
+influent_df = openad.acod.generate_influent_data("path/to/feed_ratios.csv")
 
 # Initialize and run ADM1 simulation
-model = oad.ADM1Model()
+model = openad.ADM1Model()
 results = model.simulate(influent_df)
 
 # Access results
@@ -72,7 +72,7 @@ biogas = results['q_gas']
 states = results['results']
 
 # Evaluate against measurements
-measured_data = oad.load_sample_data('biogas')
+measured_data = openad.load_sample_data('biogas')
 metrics = model.evaluate(measured_data['Biogas'].values, biogas['q_gas'].values)
 oad.utils.metrics.print_metrics(metrics)
 ```
@@ -80,13 +80,13 @@ oad.utils.metrics.print_metrics(metrics)
 ### 2. AM2 Simplified Model
 
 ```python
-import openad_lib as oad
+import openad_lib as openad
 
 # Initialize model with default parameters
-model = oad.AM2Model()
+model = openad.AM2Model()
 
 # Load experimental data (using built-in loader for example)
-data = oad.load_sample_data('am2_lab')
+data = openad.load_sample_data('am2_lab')
 model.load_data_from_dataframe(data)
 
 # Run simulation
@@ -94,10 +94,10 @@ results = model.simulate()
 
 # Evaluate
 metrics = model.evaluate()
-oad.utils.metrics.print_metrics(metrics)
+openad.utils.metrics.print_metrics(metrics)
 
 # Plot using unified system
-oad.plots.plot_multi_output(
+openad.plots.plot_multi_output(
     y_true=model.data[['SCODout', 'VFAout', 'Biogas']].values,
     y_pred=results[['S1', 'S2', 'Q']].values,
     output_names=['SCOD', 'VFA', 'Biogas'],
@@ -109,15 +109,15 @@ oad.plots.plot_multi_output(
 ### 3. AM2 Parameter Calibration
 
 ```python
-import openad_lib as oad
+import openad_lib as openad
 
 # Initialize model and load data
-model = oad.AM2Model()
-data = oad.load_sample_data('am2_lab')
+model = openad.AM2Model()
+data = openad.load_sample_data('am2_lab')
 model.load_data_from_dataframe(data)
 
 # Configure calibrator
-calibrator = oad.AM2Calibrator(model)
+calibrator = openad.AM2Calibrator(model)
 
 # Run optimization
 best_params = calibrator.calibrate(
@@ -142,33 +142,33 @@ oad.plots.plot_calibration_comparison(
 ### 4. Configuration Management
 
 ```python
-import openad_lib as oad
+import openad_lib as openad
 
 # View current configuration
-print(oad.config.default_device)  # 'cpu'
-print(oad.config.ode_solver)      # 'LSODA'
+print(openad.config.default_device)  # 'cpu'
+print(openad.config.ode_solver)      # 'LSODA'
 
 # Modify settings
-oad.config.default_device = 'cuda'
-oad.config.verbose = False
-oad.config.ode_solver = 'RK45'
+openad.config.default_device = 'cuda'
+openad.config.verbose = False
+openad.config.ode_solver = 'RK45'
 
 # View all settings
-config_dict = oad.config.to_dict()
+config_dict = openad.config.to_dict()
 ```
 
 ### 5. Data Loading and Validation
 
 ```python
-import openad_lib as oad
+import openad_lib as openad
 from openad_lib.data import validate_influent_data, validate_feedstock_data
 
 # Load sample datasets
-biogas_data = oad.load_sample_data('biogas')
-feedstock_data = oad.load_sample_data('feedstock')
+biogas_data = openad.load_sample_data('biogas')
+feedstock_data = openad.load_sample_data('feedstock')
 
 # Create dataset objects
-biogas_ds = oad.BiogasDataset(biogas_data)
+biogas_ds = openad.BiogasDataset(biogas_data)
 train_ds, test_ds = biogas_ds.split(train_fraction=0.8)
 
 # Validate data
@@ -180,15 +180,15 @@ if all(results.values()):
 ### 6. LSTM Surrogate Model
 
 ```python
-import openad_lib as oad
+import openad_lib as openad
 
 # Load and prepare data
-data = oad.load_sample_data('lstm_timeseries')
+data = openad.load_sample_data('lstm_timeseries')
 features = ['Maize', 'Wholecrop', 'Chicken Litter', 'Lactose', 'Apple Pomace', 'Rice bran']
 target = 'Total_Biogas'
 
 # Create LSTM model
-lstm = oad.LSTMModel(input_dim=len(features), hidden_dim=24, output_dim=1)
+lstm = openad.LSTMModel(input_dim=len(features), hidden_dim=24, output_dim=1)
 
 # Prepare time series data (built-in helper)
 X, y, dataset = lstm.prepare_time_series_data(data, features, target, n_in=1)
@@ -208,10 +208,10 @@ print(f"Test RMSE: {metrics['rmse']:.2f}, R²: {metrics['r2']:.3f}")
 ### 7. Multi-Task GP with Uncertainty
 
 ```python
-from openad_lib.models.ml import MultitaskGP
+import openad_lib as openad
 
 # Predict multiple outputs (SCOD, VFA, Biogas) with uncertainty
-mtgp = MultitaskGP(num_tasks=3, num_latents=3, log_transform=True)
+mtgp = openad.MultitaskGP(num_tasks=3, num_latents=3, log_transform=True)
 mtgp.fit(X_train, Y_train, epochs=500)
 
 # Get predictions with 95% confidence intervals
