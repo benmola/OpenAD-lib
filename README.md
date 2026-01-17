@@ -52,7 +52,7 @@ import openad_lib as openad
 # Access models, calibrators, and utilities directly
 model = openad.AM2Model()
 calibrator = openad.ADM1Calibrator(model, data, influent)
-dataset = oad.BiogasDataset.from_csv('biogas_data.csv')
+dataset = openad.BiogasDataset.from_csv('biogas_data.csv')
 ```
 
 ### 1. ADM1 Simulation with ACoD Preprocessing
