@@ -95,7 +95,7 @@ graph TB
     
     subgraph Layer2[" "]
         direction LR
-        A1["<b>Pyomo/SciPy</b>"]
+        A1["<b>Pyomo/SciPy/Optuna</b>"]
         B1["<b>PyTorch/GPyTorch</b>"]
         C1["<b>NumPy/SciPy</b>"]
         D1["<b>CasADi/do-mpc</b>"]
