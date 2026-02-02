@@ -2,15 +2,41 @@
 
 ## Overview
 
-This case study demonstrates the **full potential of OpenAD-lib** by creating an integrated digital twin for a co-digestion biogas plant. It showcases how multiple library components work together to solve real-world optimization challenges.
+This case study demonstrates the **full potential of OpenAD-lib** by creating an integrated digital twin for a co-digestion biogas plant. It showcases how multiple library components work together in a unified workflow, from sparse feedstock measurements to optimal control actions.
 
 ## Scenario
 
-**Agricultural Biogas Plant (500 kW)** processing multiple feedstocks (maize, grass, chicken litter) with challenges:
-- Fluctuating feedstock quality
-- Need to maximize biogas while maintaining stability
-- VFA accumulation risk
-- Limited historical data
+**Agricultural Biogas Plant** with integrated data-driven workflow:
+
+### Data Flow (as shown in diagram)
+```
+Biogas Plant → Process & Feedstock Data → Probabilistic Characterization
+                                        ↓
+                                   Input Generation
+                                        ↓
+                    ┌──────────────────┼──────────────────┐
+                    ↓                  ↓                  ↓
+              ADM1 (High-Fidelity)  AM2 (Reduced)  ML Surrogate (LSTM/MTGP)
+                    ↓                  ↓                  ↓
+                    └──────────────────┼──────────────────┘
+                                        ↓
+                                  Predictions
+                                        ↓
+                                 MPC/Scheduler
+                                        ↓
+                                 Control Actions
+                                        ↓
+                                  Biogas Plant
+```
+
+![Integrated Workflow Diagram](case_study_workflow_diagram.png)
+*Figure: Complete data flow from biogas plant through probabilistic characterization, parallel modeling approaches, and MPC control*
+
+### Key Challenges Addressed
+- **Sparse Measurements**: Limited feedstock characterization data (only 3-8 measurements per parameter)
+- **Uncertainty Quantification**: Probabilistic handling of feedstock variability
+- **Model Hierarchy**: High-fidelity (ADM1) → Reduced-order (AM2) → Data-driven (LSTM/MTGP)
+- **Real-Time Control**: Fast predictions for MPC optimization
 
 ## What This Case Study Demonstrates
 
