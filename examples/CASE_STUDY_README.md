@@ -15,8 +15,8 @@ This case study demonstrates the **full potential of OpenAD-lib** by creating an
 ## What This Case Study Demonstrates
 
 ### ✅ Complete Workflow Integration
-- Mechanistic modeling → Calibration → ML surrogates → Optimal control
-- 6 phases covering all major OpenAD-lib features
+- Probabilistic characterization → Mechanistic modeling → Calibration → ML surrogates → Optimal control
+- 5 phases covering all major OpenAD-lib features
 - ~30-45 minutes total runtime
 
 ### ✅ Key Features Showcased
@@ -24,7 +24,7 @@ This case study demonstrates the **full potential of OpenAD-lib** by creating an
 | Phase | Component | Feature Demonstrated |
 |-------|-----------|---------------------|
 | **0** | Feedstock Library | Probabilistic characterization + sparse data |
-| **1** | ADM1 | Mechanistic baseline (38 states) |
+| **1** | ADM1 | Mechanistic baseline (32 states) |
 | **2** | AM2 + Optuna | Parameter calibration |
 | **3A** | LSTM | Time series prediction |
 | **3B** | MTGP | Multi-output + uncertainty |
@@ -74,7 +74,7 @@ user_maize_data = {
 maize_prob = lib.get_probabilistic("Maize", user_data=user_maize_data)
 
 # Generate ensemble for uncertainty propagation
-maize_ensemble = maize_prob.sample(n=100, random_state=42)
+maize_ensemble = maize_prob.sample(n=500, random_state=42)
 ```
 
 **Key Features**:
