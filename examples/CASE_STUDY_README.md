@@ -23,6 +23,7 @@ This case study demonstrates the **full potential of OpenAD-lib** by creating an
 
 | Phase | Component | Feature Demonstrated |
 |-------|-----------|---------------------|
+| **0** | Feedstock Library | Probabilistic characterization + sparse data |
 | **1** | ADM1 | Mechanistic baseline (38 states) |
 | **2** | AM2 + Optuna | Parameter calibration |
 | **3A** | LSTM | Time series prediction |
@@ -44,6 +45,7 @@ python case_study_integrated.py
 ### Output Files
 
 All results saved to `examples/case_study_results/`:
+- `phase0_probabilistic_feedstock.png` - Sparse user data + library uncertainty
 - `phase1_adm1_baseline.png` - ADM1 validation
 - `phase2_am2_calibration.png` - Before/after calibration
 - `phase3a_lstm_prediction.png` - LSTM forecasting
@@ -54,6 +56,41 @@ All results saved to `examples/case_study_results/`:
 
 ## Detailed Workflow
 
+### Phase 0: Probabilistic Feedstock Characterization
+**Goal**: Handle sparse user measurements with library uncertainty filling
+
+```python
+# Initialize feedstock library
+lib = openad.FeedstockLibrary()
+
+# User provides LIMITED measurements (realistic scenario)
+user_maize_data = {
+    'ts': [310, 315, 308],    # Only 3 TS measurements from lab
+    'bmp': [285, 300, 293, 290, 295, 292, 298, 294]  # 8 BMP measurements
+    # Missing: vs, cod_total, proteins, lipids
+}
+
+# Library fills missing parameters automatically
+maize_prob = lib.get_probabilistic("Maize", user_data=user_maize_data)
+
+# Generate ensemble for uncertainty propagation
+maize_ensemble = maize_prob.sample(n=100, random_state=42)
+```
+
+**Key Features**:
+- **Sparse Data Handling**: User provides only available measurements
+- **Automatic Gap Filling**: Library fills missing parameters from built-in uncertainty
+- **Source Tracking**: Clear labels showing USER vs LIBRARY data
+- **Ensemble Generation**: 100 realizations for uncertainty propagation
+
+**Visualization**: 4-panel plot showing:
+- Top-Left: TS (user provided - 3 measurements)
+- Top-Right: VS (library filled - no user data)
+- Bottom-Left: BMP (user provided - 8 measurements)
+- Bottom-Right: COD (library filled - no user data)
+
+---
+
 ### Phase 1: ADM1 Mechanistic Baseline
 **Goal**: Establish physics-based understanding
 
@@ -61,7 +98,7 @@ All results saved to `examples/case_study_results/`:
 # Generate influent from feedstock ratios
 influent_df = openad.acod.generate_influent_data(feedstock_data)
 
-# Run ADM1 simulation (38 states)
+# Run ADM1 simulation (32 states)
 adm1_model = openad.ADM1Model()
 results = adm1_model.simulate(influent_df)
 

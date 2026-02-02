@@ -6,6 +6,7 @@ This script demonstrates the full potential of OpenAD-lib by creating an integra
 digital twin workflow for a co-digestion biogas plant.
 
 Workflow:
+0. Phase 0: Probabilistic Feedstock Characterization (Uncertainty Quantification)
 1. Phase 1: ADM1 Mechanistic Baseline
 2. Phase 2: AM2 Model Calibration (Optuna)
 3. Phase 3A: LSTM Time Series Prediction
@@ -38,6 +39,121 @@ results_dir.mkdir(exist_ok=True)
 print("=" * 80)
 print("OpenAD-lib Integrated Case Study: Digital Twin for Biogas Optimization")
 print("=" * 80)
+
+# =============================================================================
+# PHASE 0: PROBABILISTIC FEEDSTOCK CHARACTERIZATION
+# =============================================================================
+print("\n" + "=" * 80)
+print("PHASE 0: Probabilistic Feedstock Characterization with Uncertainty")
+print("=" * 80)
+
+print("\n[0.1] Initializing feedstock library...")
+lib = openad.FeedstockLibrary()
+print(f"  ✓ Loaded library with {len(lib.list_feedstocks())} feedstocks")
+
+print("\n[0.2] User provides sparse measurements (realistic scenario)...")
+# Realistic: User only has limited lab measurements for maize
+user_maize_data = {
+    'ts': [310, 315, 308],      # Only 3 TS measurements from lab
+    'bmp': [285, 300, 293, 290, 295, 292, 298, 294]           # Only 2 BMP measurements
+    # Missing: vs, cod_total, proteins, lipids
+}
+print(f"  User measurements:")
+print(f"    TS:  {user_maize_data['ts']} (n={len(user_maize_data['ts'])})")
+print(f"    BMP: {user_maize_data['bmp']} (n={len(user_maize_data['bmp'])})")
+print(f"    Missing: VS, COD, proteins, lipids")
+
+print("\n[0.3] Library fills missing parameters with built-in uncertainty...")
+maize_prob = lib.get_probabilistic("Maize", user_data=user_maize_data)
+print(f"  ✓ Created probabilistic feedstock: {maize_prob.name}")
+print(f"    TS:  {maize_prob.ts:.1f} kg/m³ (from USER)")
+print(f"    VS:  {maize_prob.vs:.1f} g/kg TS (from LIBRARY)")
+print(f"    BMP: {maize_prob.bmp:.1f} NL CH4/kg VS (from USER)")
+print(f"    COD: {maize_prob.cod_total:.1f} kg COD/m³ (from LIBRARY)")
+
+print("\n[0.4] Generating ensemble for uncertainty propagation...")
+maize_ensemble = maize_prob.sample(n=500, random_state=42)
+ts_ensemble = [f.ts for f in maize_ensemble]
+vs_ensemble = [f.vs for f in maize_ensemble]
+bmp_ensemble = [f.bmp for f in maize_ensemble]
+cod_ensemble = [f.cod_total for f in maize_ensemble]
+print(f"  ✓ Generated {len(maize_ensemble)} realizations")
+print(f"    TS ensemble:  {np.mean(ts_ensemble):.1f} ± {np.std(ts_ensemble):.1f} kg/m³")
+print(f"    BMP ensemble: {np.mean(bmp_ensemble):.1f} ± {np.std(bmp_ensemble):.1f} NL CH4/kg VS")
+print(f"  → Uncertainty will propagate through ADM1 simulations")
+
+print("\n[0.5] Visualizing sparse user data + library uncertainty...")
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+fig.suptitle('Phase 0: Probabilistic Feedstock Characterization', fontsize=14, fontweight='bold')
+
+# TS - User provided
+ax = axes[0, 0]
+user_ts = np.array(user_maize_data['ts'])
+ax.hist(user_ts, bins=3, alpha=0.6, label=f'User Data (n={len(user_ts)})', 
+        color='darkgreen', edgecolor='black', width=2)
+ax.hist(ts_ensemble, bins=30, alpha=0.5, label=f'Ensemble (n={len(ts_ensemble)})', 
+        color='lightblue')
+ax.axvline(np.mean(user_ts), color='darkgreen', linestyle='--', linewidth=2, label='Mean (user)')
+ax.axvline(np.mean(ts_ensemble), color='blue', linestyle='--', linewidth=1.5, label='Mean (ensemble)')
+ax.set_xlabel('Total Solids [kg/m³]', fontweight='bold')
+ax.set_ylabel('Frequency')
+ax.set_title('TS: User Provided', color='darkgreen')
+ax.legend(fontsize=8)
+ax.grid(True, alpha=0.3)
+
+# VS - Library filled
+ax = axes[0, 1]
+ax.hist(vs_ensemble, bins=30, alpha=0.7, label=f'Library Ensemble (n={len(vs_ensemble)})', 
+        color='orange', edgecolor='black')
+ax.axvline(np.mean(vs_ensemble), color='red', linestyle='--', linewidth=2, label='Mean')
+ax.text(0.05, 0.95, 'Library Filled\n(No user data)', transform=ax.transAxes, 
+        fontsize=9, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+ax.set_xlabel('Volatile Solids [g/kg TS]', fontweight='bold')
+ax.set_ylabel('Frequency')
+ax.set_title('VS: Library Filled', color='orange')
+ax.legend(fontsize=8)
+ax.grid(True, alpha=0.3)
+
+# BMP - User provided
+ax = axes[1, 0]
+user_bmp = np.array(user_maize_data['bmp'])
+ax.hist(user_bmp, bins=8, alpha=0.6, label=f'User Data (n={len(user_bmp)})', 
+        color='darkgreen', edgecolor='black', width=2)
+ax.hist(bmp_ensemble, bins=30, alpha=0.5, label=f'Ensemble (n={len(bmp_ensemble)})', 
+        color='lightblue')
+ax.axvline(np.mean(user_bmp), color='darkgreen', linestyle='--', linewidth=2, label='Mean (user)')
+ax.axvline(np.mean(bmp_ensemble), color='blue', linestyle='--', linewidth=1.5, label='Mean (ensemble)')
+ax.set_xlabel('BMP [NL CH4/kg VS]', fontweight='bold')
+ax.set_ylabel('Frequency')
+ax.set_title('BMP: User Provided', color='darkgreen')
+ax.legend(fontsize=8)
+ax.grid(True, alpha=0.3)
+
+# COD - Library filled
+ax = axes[1, 1]
+ax.hist(cod_ensemble, bins=30, alpha=0.7, label=f'Library Ensemble (n={len(cod_ensemble)})', 
+        color='orange', edgecolor='black')
+ax.axvline(np.mean(cod_ensemble), color='red', linestyle='--', linewidth=2, label='Mean')
+ax.text(0.05, 0.95, 'Library Filled\n(No user data)', transform=ax.transAxes, 
+        fontsize=9, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+ax.set_xlabel('Total COD [kg COD/m³]', fontweight='bold')
+ax.set_ylabel('Frequency')
+ax.set_title('COD: Library Filled', color='orange')
+ax.legend(fontsize=8)
+ax.grid(True, alpha=0.3)
+
+plt.tight_layout()
+phase0_plot_path = results_dir / "phase0_probabilistic_feedstock.png"
+plt.savefig(phase0_plot_path, dpi=300, bbox_inches='tight')
+plt.close()
+print(f"  ✓ Saved plot: {phase0_plot_path}")
+
+# Use mean feedstock for deterministic phases (backward compatibility)
+maize_deterministic = lib.get("Maize")
+print(f"\n[0.6] Using deterministic feedstock for baseline comparison...")
+print(f"  ✓ Maize (deterministic): TS={maize_deterministic.ts:.1f}, BMP={maize_deterministic.bmp:.1f}")
 
 # =============================================================================
 # PHASE 1: ADM1 MECHANISTIC BASELINE

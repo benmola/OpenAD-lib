@@ -18,7 +18,7 @@ Example:
 
 import numpy as np
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any, Union, List
 import warnings
 
 
@@ -172,6 +172,191 @@ class FeedstockDescriptor:
     def from_dict(cls, data: Dict[str, Any]) -> 'FeedstockDescriptor':
         """Create from dictionary."""
         return cls(**data)
+    
+    @classmethod
+    def from_samples(
+        cls,
+        name: str,
+        samples_dict: Dict[str, Union[List[float], np.ndarray]]
+    ) -> 'FeedstockDescriptor':
+        """
+        Create FeedstockDescriptor with uncertainty from multi-source data.
+        
+        Fits probability distributions to observed samples using MLE.
+        Automatically assigns appropriate distribution types based on
+        parameter names.
+        
+        Args:
+            name: Feedstock identifier
+            samples_dict: Dictionary mapping parameter names to sample arrays
+                         e.g., {'ts': [310, 315, 308], 'vs': [945, 950, 948]}
+        
+        Returns:
+            FeedstockDescriptor with fitted distributions in uncertainty field
+            
+        Example:
+            >>> samples = {
+            ...     'ts': [310, 315, 308, 312],
+            ...     'vs': [945, 950, 948, 947],
+            ...     'bmp': [290, 295, 293, 292],
+            ...     'biodegradability': [0.75, 0.82, 0.78, 0.80]
+            ... }
+            >>> feedstock = FeedstockDescriptor.from_samples("Maize", samples)
+            >>> print(feedstock.uncertainty['ts'])
+        """
+        from openad_lib.feedstock.distributions import assign_distribution
+        
+        # Calculate point estimates (means)
+        point_estimates = {}
+        distributions = {}
+        
+        for param, samples in samples_dict.items():
+            samples_array = np.asarray(samples)
+            
+            # Point estimate (mean)
+            point_estimates[param] = float(np.mean(samples_array))
+            
+            # Fit distribution
+            try:
+                distributions[param] = assign_distribution(param, samples_array)
+            except Exception as e:
+                warnings.warn(f"Could not fit distribution for '{param}': {e}")
+        
+        # Create descriptor with point estimates
+        descriptor = cls(name=name, **point_estimates)
+        descriptor.uncertainty = distributions
+        
+        return descriptor
+    
+    def sample(
+        self,
+        n: int = 1,
+        random_state: Optional[int] = None,
+        apply_constraints: bool = True
+    ) -> Union['FeedstockDescriptor', List['FeedstockDescriptor']]:
+        """
+        Generate ensemble of feedstock realizations from distributions.
+        
+        Samples from fitted probability distributions with optional
+        physical constraint enforcement.
+        
+        Args:
+            n: Number of samples to generate
+            random_state: Random seed for reproducibility
+            apply_constraints: If True, enforce physical constraints
+            
+        Returns:
+            Single FeedstockDescriptor if n=1, else list of descriptors
+            
+        Raises:
+            ValueError: If no uncertainty distributions are defined
+            
+        Example:
+            >>> # Assuming feedstock has fitted distributions
+            >>> ensemble = feedstock.sample(n=100, random_state=42)
+            >>> print(f"Generated {len(ensemble)} realizations")
+        """
+        if self.uncertainty is None or len(self.uncertainty) == 0:
+            raise ValueError(
+                f"No uncertainty distributions defined for '{self.name}'. "
+                "Use from_samples() to fit distributions first."
+            )
+        
+        if random_state is not None:
+            np.random.seed(random_state)
+        
+        samples = []
+        for i in range(n):
+            # Sample from each distribution
+            sample_dict = {'name': f"{self.name}_sample_{i}"}
+            
+            for param, distribution in self.uncertainty.items():
+                sample_dict[param] = float(distribution.sample(1)[0])
+            
+            # Apply physical constraints if requested
+            if apply_constraints:
+                sample_dict = self._apply_constraints(sample_dict)
+            
+            samples.append(FeedstockDescriptor(**sample_dict))
+        
+        return samples[0] if n == 1 else samples
+    
+    def _apply_constraints(self, sample_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Apply physical consistency constraints to sampled parameters.
+        
+        Constraints:
+        - VS ≤ 1000 g/kg TS (100%)
+        - COD_soluble ≤ COD_total
+        - All concentrations ≥ 0
+        - VFA components ≤ VFA_total
+        
+        Args:
+            sample_dict: Dictionary of sampled parameter values
+            
+        Returns:
+            Constrained parameter dictionary
+        """
+        # Ensure non-negativity
+        for key in sample_dict:
+            if isinstance(sample_dict[key], (int, float)) and key != 'name':
+                sample_dict[key] = max(sample_dict[key], 0.0)
+        
+        # VS ≤ 100% of TS
+        if 'vs' in sample_dict:
+            sample_dict['vs'] = min(sample_dict['vs'], 1000.0)
+        
+        # Soluble COD ≤ Total COD
+        if 'cod_soluble' in sample_dict and 'cod_total' in sample_dict:
+            sample_dict['cod_soluble'] = min(
+                sample_dict['cod_soluble'],
+                sample_dict['cod_total']
+            )
+        
+        # Particulate COD consistency
+        if 'cod_particulate' in sample_dict and 'cod_total' in sample_dict and 'cod_soluble' in sample_dict:
+            sample_dict['cod_particulate'] = max(
+                sample_dict['cod_total'] - sample_dict['cod_soluble'],
+                0.0
+            )
+        
+        # VFA components ≤ Total VFA
+        vfa_components = ['acetate', 'propionate', 'butyrate', 'valerate']
+        if 'vfa_total' in sample_dict:
+            total_vfa = sum(sample_dict.get(vfa, 0.0) for vfa in vfa_components)
+            if total_vfa > sample_dict['vfa_total']:
+                # Scale down proportionally
+                scale = sample_dict['vfa_total'] / total_vfa
+                for vfa in vfa_components:
+                    if vfa in sample_dict:
+                        sample_dict[vfa] *= scale
+        
+        return sample_dict
+    
+    def get_distribution(self, parameter: str):
+        """
+        Get probability distribution for a specific parameter.
+        
+        Args:
+            parameter: Parameter name
+            
+        Returns:
+            Distribution object
+            
+        Raises:
+            KeyError: If parameter has no fitted distribution
+        """
+        if self.uncertainty is None:
+            raise ValueError(f"No uncertainty distributions defined for '{self.name}'")
+        
+        if parameter not in self.uncertainty:
+            raise KeyError(
+                f"No distribution for parameter '{parameter}'. "
+                f"Available: {list(self.uncertainty.keys())}"
+            )
+        
+        return self.uncertainty[parameter]
+
 
 
 @dataclass  

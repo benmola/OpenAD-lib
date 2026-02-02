@@ -83,6 +83,14 @@ def __getattr__(name):
         from openad_lib.data.datasets import FeedstockDataset
         return FeedstockDataset
     
+    # Feedstock library
+    elif name == "FeedstockLibrary":
+        from openad_lib.feedstock import FeedstockLibrary
+        return FeedstockLibrary
+    elif name == "FeedstockDescriptor":
+        from openad_lib.feedstock import FeedstockDescriptor
+        return FeedstockDescriptor
+    
     # Submodules (for backward compatibility and direct access)
     # Use importlib to avoid recursive __getattr__ calls
     elif name == "mechanistic":
@@ -131,6 +139,10 @@ __all__ = [
     "load_sample_data",
     "BiogasDataset",
     "FeedstockDataset",
+    
+    # Feedstock library
+    "FeedstockLibrary",
+    "FeedstockDescriptor",
     
     # Submodules
     "mechanistic",
