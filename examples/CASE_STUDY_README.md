@@ -8,29 +8,52 @@ This case study demonstrates the **full potential of OpenAD-lib** by creating an
 
 **Agricultural Biogas Plant** with integrated data-driven workflow:
 
-### Data Flow (as shown in diagram)
-```
-Biogas Plant → Process & Feedstock Data → Probabilistic Characterization
-                                        ↓
-                                   Input Generation
-                                        ↓
-                    ┌──────────────────┼──────────────────┐
-                    ↓                  ↓                  ↓
-              ADM1 (High-Fidelity)  AM2 (Reduced)  ML Surrogate (LSTM/MTGP)
-                    ↓                  ↓                  ↓
-                    └──────────────────┼──────────────────┘
-                                        ↓
-                                  Predictions
-                                        ↓
-                                 MPC/Scheduler
-                                        ↓
-                                 Control Actions
-                                        ↓
-                                  Biogas Plant
-```
+### Data Flow
 
-![Integrated Workflow Diagram](case_study_workflow_diagram.png)
-*Figure: Complete data flow from biogas plant through probabilistic characterization, parallel modeling approaches, and MPC control*
+```mermaid
+flowchart LR
+    
+    PROCESS["<b>Biogas Plant</b>"]
+    
+    DATA["<b>Process &<br/>Feedstock Data</b>"]
+    CHAR["<b>Probabilistic<br/>Characterisation</b>"]
+    INPUTS["<b>Input<br/>Generation</b>"]
+    
+    ADM1["<b>ADM1</b><br/>(High-fidelity)"]
+    AM2["<b>AM2</b><br/>(Reduced-order)"]
+    ML["<b>ML Surrogate</b><br/>(LSTM/MTGP)"]
+    
+    PRED["<b>Predictions</b>"]
+    MPC["<b>MPC/Scheduler</b>"]
+    CONTROL["<b>Control<br/>Actions</b>"]
+    
+    PROCESS --> DATA
+    DATA --> CHAR
+    CHAR --> INPUTS
+    
+    INPUTS --> ADM1
+    ADM1 --> AM2
+    DATA --> ML
+    CHAR --> ML
+    
+    ADM1 --> PRED
+    ML --> PRED
+    AM2 --> MPC
+    PRED --> MPC
+    
+    MPC --> CONTROL
+    CONTROL --> PROCESS
+    
+    classDef phys fill:#e8f5e9,stroke:#2e7d32,stroke-width:5px,color:#000,font-size:24px,font-weight:bold,padding:20px
+    classDef data fill:#e3f2fd,stroke:#1565c0,stroke-width:4px,color:#000,font-size:22px,font-weight:bold,padding:20px
+    classDef model fill:#ede7f6,stroke:#4527a0,stroke-width:4px,color:#000,font-size:22px,font-weight:bold,padding:20px
+    classDef control fill:#fff3e0,stroke:#ef6c00,stroke-width:4px,color:#000,font-size:22px,font-weight:bold,padding:20px
+    
+    class PROCESS phys
+    class DATA,CHAR,INPUTS data
+    class ADM1,AM2,ML model
+    class PRED,MPC,CONTROL control
+```
 
 ### Key Challenges Addressed
 - **Sparse Measurements**: Limited feedstock characterization data (only 3-8 measurements per parameter)
