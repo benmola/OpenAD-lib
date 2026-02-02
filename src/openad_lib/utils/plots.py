@@ -602,7 +602,10 @@ def plot_mpc_results(
     show: bool = True
 ) -> plt.Figure:
     """
-    Plot MPC control results (States, Biogas, Control Input).
+    Plot MPC control results.
+    
+    For biogas maximization: 2 panels (Biogas, Control Input)
+    For VFA tracking: 3 panels (VFA Tracking, Biogas, Control Input)
 
     Parameters
     ----------
@@ -624,55 +627,80 @@ def plot_mpc_results(
     """
     set_openad_style()
     
-    fig, axes = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
+    # Determine if this is tracking (3 panels) or maximization (2 panels)
+    is_tracking = ('Setpoint' in history) or (s2_setpoint is not None)
     
-    # Determine what to plot in the first subplot (Tracking vs State)
-    ax = axes[0]
-    if 'Setpoint' in history:
-        # VFA Tracking Case
-        ax.plot(history['time'], history['S2'], 'b-', linewidth=2, label='VFA (S2)')
-        ax.plot(history['time'], history['Setpoint'], 'k--', linewidth=2, label='Setpoint')
-        ax.set_ylabel('Concentration [g/L]', fontsize=12, fontweight='bold')
-        ax.set_title('VFA Tracking Performance', fontsize=14)
-    elif s2_setpoint is not None:
-         # VFA Tracking Case (implicit setpoint)
-        ax.plot(history['time'], history['S2'], 'b-', linewidth=2, label='VFA (S2)')
-        ax.axhline(y=s2_setpoint, color='k', linestyle='--', linewidth=2, label='Setpoint')
-        ax.set_ylabel('Concentration [g/L]', fontsize=12, fontweight='bold')
-        ax.set_title('VFA Tracking Performance', fontsize=14)
-    else:
-        # Standard Control Case (Show S1/VFA)
-        ax.plot(history['time'], history['S1'], 'b-', linewidth=2, label='VFA (S1)')
-        ax.set_ylabel('Concentration [g COD/L]', fontsize=12, fontweight='bold')
-        ax.set_title('VFA Concentration', fontsize=14)
-    
-    ax.legend(fontsize=10, frameon=True)
-    ax.grid(True, alpha=0.3)
-    
-    # Plot 2: Biogas
-    ax = axes[1]
-    ax.plot(history['time'], history['Q'], 'g-', linewidth=2, label='Biogas Production')
-    ax.set_ylabel('Rate [L/d]', fontsize=12, fontweight='bold')
-    ax.set_title('Biogas Production', fontsize=14)
-    ax.legend(fontsize=10, frameon=True)
-    ax.grid(True, alpha=0.3)
-    
-    # Plot 3: Control Input
-    ax = axes[2]
-    ax.step(history['time'], history['D'], 'r-', where='post', label='Dilution Rate (D)')
-    
-    if d_max is not None:
-        ax.axhline(y=d_max, color='r', linestyle=':', label='Max Constraint')
-        ax.axhline(y=0, color='r', linestyle=':', label='Min Constraint')
-        ax.set_ylim(-0.05, d_max + 0.1)
-    else:
-        ax.set_ylim(bottom=-0.05)
+    if is_tracking:
+        # VFA Tracking: 3 panels (VFA + Biogas + Control)
+        fig, axes = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
         
-    ax.set_ylabel('Rate [1/d]', fontsize=12, fontweight='bold')
-    ax.set_xlabel('Time [days]', fontsize=12, fontweight='bold')
-    ax.set_title('Control Input & Constraints', fontsize=14)
-    ax.legend(fontsize=10, frameon=True)
-    ax.grid(True, alpha=0.3)
+        # Panel 1: VFA Tracking
+        ax = axes[0]
+        if 'Setpoint' in history:
+            ax.plot(history['time'], history['S2'], 'b-', linewidth=2, label='VFA (S2)')
+            ax.plot(history['time'], history['Setpoint'], 'k--', linewidth=2, label='Setpoint')
+        elif s2_setpoint is not None:
+            ax.plot(history['time'], history['S2'], 'b-', linewidth=2, label='VFA (S2)')
+            ax.axhline(y=s2_setpoint, color='k', linestyle='--', linewidth=2, label='Setpoint')
+        
+        ax.set_ylabel('Concentration [g/L]', fontsize=12, fontweight='bold')
+        ax.set_title('VFA Tracking Performance', fontsize=14)
+        ax.legend(fontsize=10, frameon=True)
+        ax.grid(True, alpha=0.3)
+        
+        # Panel 2: Biogas
+        ax = axes[1]
+        ax.plot(history['time'], history['Q'], 'g-', linewidth=2, label='Biogas Production')
+        ax.set_ylabel('Biogas Flow Rate [L/d]', fontsize=12, fontweight='bold')
+        ax.set_title('Biogas Production', fontsize=14)
+        ax.legend(fontsize=10, frameon=True)
+        ax.grid(True, alpha=0.3)
+        
+        # Panel 3: Control Input
+        ax = axes[2]
+        ax.step(history['time'], history['D'], 'r-', where='post', label='Dilution Rate (D)')
+        
+        if d_max is not None:
+            ax.axhline(y=d_max, color='r', linestyle=':', label='Max Constraint')
+            ax.axhline(y=0, color='r', linestyle=':', label='Min Constraint')
+            ax.set_ylim(-0.05, d_max + 0.1)
+        else:
+            ax.set_ylim(bottom=-0.05)
+            
+        ax.set_ylabel('Dilution Rate [1/d]', fontsize=12, fontweight='bold')
+        ax.set_xlabel('Time [days]', fontsize=12, fontweight='bold')
+        ax.set_title('Control Input & Constraints', fontsize=14)
+        ax.legend(fontsize=10, frameon=True)
+        ax.grid(True, alpha=0.3)
+        
+    else:
+        # Biogas Maximization: 2 panels (Biogas + Control)
+        fig, axes = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+        
+        # Panel 1: Biogas
+        ax = axes[0]
+        ax.plot(history['time'], history['Q'], 'g-', linewidth=2, label='Biogas Production')
+        ax.set_ylabel('Biogas Flow Rate [L/d]', fontsize=12, fontweight='bold')
+        ax.set_title('Biogas Production', fontsize=14)
+        ax.legend(fontsize=10, frameon=True)
+        ax.grid(True, alpha=0.3)
+        
+        # Panel 2: Control Input
+        ax = axes[1]
+        ax.step(history['time'], history['D'], 'r-', where='post', label='Dilution Rate (D)')
+        
+        if d_max is not None:
+            ax.axhline(y=d_max, color='r', linestyle=':', label='Max Constraint')
+            ax.axhline(y=0, color='r', linestyle=':', label='Min Constraint')
+            ax.set_ylim(-0.05, d_max + 0.1)
+        else:
+            ax.set_ylim(bottom=-0.05)
+            
+        ax.set_ylabel('Dilution Rate [1/d]', fontsize=12, fontweight='bold')
+        ax.set_xlabel('Time [days]', fontsize=12, fontweight='bold')
+        ax.set_title('Control Input & Constraints', fontsize=14)
+        ax.legend(fontsize=10, frameon=True)
+        ax.grid(True, alpha=0.3)
     
     plt.tight_layout()
     
