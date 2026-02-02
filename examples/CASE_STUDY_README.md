@@ -138,6 +138,8 @@ maize_ensemble = maize_prob.sample(n=500, random_state=42)
 - Bottom-Left: BMP (user provided - 8 measurements)
 - Bottom-Right: COD (library filled - no user data)
 
+![Phase 0: Probabilistic Feedstock Characterization](case_study_results/phase0_probabilistic_feedstock.png)
+
 ---
 
 ### Phase 1: ADM1 Mechanistic Baseline
@@ -156,6 +158,8 @@ metrics = openad.utils.metrics.compute_metrics(y_true, y_pred)
 ```
 
 **Outputs**: Biogas predictions, VFA dynamics, pH trajectory
+
+![Phase 1: ADM1 Mechanistic Baseline](case_study_results/phase1_adm1_baseline.png)
 
 ---
 
@@ -177,6 +181,8 @@ best_params = calibrator.calibrate(
 
 **Outputs**: Optimized parameters, before/after comparison
 
+![Phase 2: AM2 Calibration](case_study_results/phase2_am2_calibration.png)
+
 ---
 
 ### Phase 3A: LSTM Time Series Prediction
@@ -196,6 +202,8 @@ metrics = lstm.evaluate(X_test, y_test)
 
 **Outputs**: Predictions with train/test split visualization
 
+![Phase 3A: LSTM Prediction](case_study_results/phase3a_lstm_prediction.png)
+
 ---
 
 ### Phase 3B: Multi-Task GP with Uncertainty
@@ -211,6 +219,8 @@ mean, lower, upper = mtgp.predict(X_test, return_std=True)
 ```
 
 **Outputs**: Simultaneous predictions for 3 outputs with 95% CI
+
+![Phase 3B: Multi-Task GP Uncertainty](case_study_results/phase3b_mtgp_uncertainty.png)
 
 ---
 
@@ -233,6 +243,8 @@ for k in range(30):
 
 **Outputs**: Optimal dilution rate trajectory, biogas production
 
+![Phase 4A: MPC Biogas Maximization](case_study_results/phase4a_mpc_biogas_max.png)
+
 ---
 
 ### Phase 4B: MPC VFA Tracking
@@ -251,6 +263,8 @@ for k in range(30):
 ```
 
 **Outputs**: VFA tracking performance, control effort
+
+![Phase 4B: MPC VFA Tracking](case_study_results/phase4b_mpc_vfa_tracking.png)
 
 ---
 
