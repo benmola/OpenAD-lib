@@ -119,7 +119,7 @@ class AM2MPC:
         # If pH is typically 7, and pHH is 8.5 (default), then at 7, factor is exp(-4*((7-8.5)/(8.5-5.5))^2) = exp(-4*(1/2)).
         # It's an inhibition term. I will copy it exactly.
         
-        mu2 = mu2_base * (1.0 - pH_factor)
+        #mu2 = mu2_base * (1.0 - pH_factor)
         
         # --- ODEs ---
         # dS1/dt = D*(S1in - S1) - k1*mu1*X1

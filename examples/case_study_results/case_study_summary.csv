@@ -1,7 +1,7 @@
 Phase,Model,R² Score,RMSE,Key Feature
-1: ADM1 Baseline,ADM1,-17.613,7800.14,Mechanistic (38 states)
+1: ADM1 Baseline,ADM1,-33.156,8057.61,Mechanistic (38 states)
 2: AM2 Calibration,AM2,0.000,0.00,Optuna calibration
-3A: LSTM Prediction,LSTM,-0.230,743.36,Time series forecasting
-3B: MTGP Uncertainty,MTGP,0.880,0.24,Multi-output + uncertainty
+3A: LSTM Prediction,LSTM,-0.288,760.72,Time series forecasting
+3B: MTGP Uncertainty,MTGP,0.885,451.11,Multi-output + uncertainty
 4A: MPC Biogas Max,AM2-MPC,N/A,N/A,Optimal control
 4B: MPC VFA Tracking,AM2-MPC,N/A,N/A,Setpoint tracking

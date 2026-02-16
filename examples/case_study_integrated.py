@@ -85,8 +85,8 @@ print(f"  → Uncertainty will propagate through ADM1 simulations")
 print("\n[0.5] Visualizing sparse user data + library uncertainty...")
 import matplotlib.pyplot as plt
 
-fig, axes = plt.subplots(2, 2, figsize=(12, 8))
-fig.suptitle('Phase 0: Probabilistic Feedstock Characterization', fontsize=14, fontweight='bold')
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+fig.suptitle('Phase 0: Probabilistic Feedstock Characterization', fontsize=20, fontweight='bold')
 
 # TS - User provided
 ax = axes[0, 0]
@@ -97,11 +97,12 @@ ax.hist(ts_ensemble, bins=30, alpha=0.5, label=f'Ensemble (n={len(ts_ensemble)})
         color='lightblue')
 ax.axvline(np.mean(user_ts), color='darkgreen', linestyle='--', linewidth=2, label='Mean (user)')
 ax.axvline(np.mean(ts_ensemble), color='blue', linestyle='--', linewidth=1.5, label='Mean (ensemble)')
-ax.set_xlabel('Total Solids [kg/m³]', fontweight='bold')
-ax.set_ylabel('Frequency')
-ax.set_title('TS: User Provided', color='darkgreen')
-ax.legend(fontsize=8)
+ax.set_xlabel('Total Solids [kg/m³]', fontweight='bold', fontsize=16)
+ax.set_ylabel('Frequency', fontsize=16)
+ax.set_title('TS: User Provided', color='darkgreen', fontsize=18)
+ax.legend(fontsize=18)
 ax.grid(True, alpha=0.3)
+ax.tick_params(labelsize=14)
 
 # VS - Library filled
 ax = axes[0, 1]
@@ -109,12 +110,13 @@ ax.hist(vs_ensemble, bins=30, alpha=0.7, label=f'Library Ensemble (n={len(vs_ens
         color='orange', edgecolor='black')
 ax.axvline(np.mean(vs_ensemble), color='red', linestyle='--', linewidth=2, label='Mean')
 ax.text(0.05, 0.95, 'Library Filled\n(No user data)', transform=ax.transAxes, 
-        fontsize=9, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-ax.set_xlabel('Volatile Solids [g/kg TS]', fontweight='bold')
-ax.set_ylabel('Frequency')
-ax.set_title('VS: Library Filled', color='orange')
-ax.legend(fontsize=8)
+        fontsize=14, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+ax.set_xlabel('Volatile Solids [g/kg TS]', fontweight='bold', fontsize=16)
+ax.set_ylabel('Frequency', fontsize=16)
+ax.set_title('VS: Library Filled', color='orange', fontsize=18)
+ax.legend(fontsize=18)
 ax.grid(True, alpha=0.3)
+ax.tick_params(labelsize=14)
 
 # BMP - User provided
 ax = axes[1, 0]
@@ -125,11 +127,12 @@ ax.hist(bmp_ensemble, bins=30, alpha=0.5, label=f'Ensemble (n={len(bmp_ensemble)
         color='lightblue')
 ax.axvline(np.mean(user_bmp), color='darkgreen', linestyle='--', linewidth=2, label='Mean (user)')
 ax.axvline(np.mean(bmp_ensemble), color='blue', linestyle='--', linewidth=1.5, label='Mean (ensemble)')
-ax.set_xlabel('BMP [NL CH4/kg VS]', fontweight='bold')
-ax.set_ylabel('Frequency')
-ax.set_title('BMP: User Provided', color='darkgreen')
-ax.legend(fontsize=8)
+ax.set_xlabel('BMP [NL CH4/kg VS]', fontweight='bold', fontsize=16)
+ax.set_ylabel('Frequency', fontsize=16)
+ax.set_title('BMP: User Provided', color='darkgreen', fontsize=18)
+ax.legend(fontsize=18)
 ax.grid(True, alpha=0.3)
+ax.tick_params(labelsize=14)
 
 # COD - Library filled
 ax = axes[1, 1]
@@ -137,12 +140,13 @@ ax.hist(cod_ensemble, bins=30, alpha=0.7, label=f'Library Ensemble (n={len(cod_e
         color='orange', edgecolor='black')
 ax.axvline(np.mean(cod_ensemble), color='red', linestyle='--', linewidth=2, label='Mean')
 ax.text(0.05, 0.95, 'Library Filled\n(No user data)', transform=ax.transAxes, 
-        fontsize=9, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
-ax.set_xlabel('Total COD [kg COD/m³]', fontweight='bold')
-ax.set_ylabel('Frequency')
-ax.set_title('COD: Library Filled', color='orange')
-ax.legend(fontsize=8)
+        fontsize=14, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+ax.set_xlabel('Total COD [kg COD/m³]', fontweight='bold', fontsize=16)
+ax.set_ylabel('Frequency', fontsize=16)
+ax.set_title('COD: Library Filled', color='orange', fontsize=18)
+ax.legend(fontsize=18)
 ax.grid(True, alpha=0.3)
+ax.tick_params(labelsize=14)
 
 plt.tight_layout()
 phase0_plot_path = results_dir / "phase0_probabilistic_feedstock.png"

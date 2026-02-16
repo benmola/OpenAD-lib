@@ -182,6 +182,7 @@ class ADM1Model(MechanisticModel):
         
         return {
             'results': df_res,
+            'states': df_res,  # Full state trajectories for AM2 aggregation
             'q_gas': df_qgas,
             'q_ch4': df_qch4
         }
